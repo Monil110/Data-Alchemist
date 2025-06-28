@@ -350,7 +350,11 @@ const HomePage = () => {
                       <p className="text-sm font-medium text-gray-900">{activity.message}</p>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {activity.timestamp.toLocaleTimeString()}
+                      {activity.timestamp.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit', 
+                        hour12: true 
+                      })}
                     </p>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 import { useValidationStore } from '@/store/validation-slice';
 import { useDataStore } from '@/store';

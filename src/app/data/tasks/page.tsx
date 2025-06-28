@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { useDataStore } from '@/store';
 import { DataGrid } from '@/components/data-grid/data-grid';
@@ -23,10 +24,20 @@ export default function TasksPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const runValidation = useValidationStore(s => s.runValidation);
+  const validationErrorsList = useValidationStore(s => s.errors);
 
   useEffect(() => {
     runValidation();
   }, [tasks, runValidation]);
+
+  // Map validation errors to cell keys
+  const validationErrors: Record<string, string> = {};
+  validationErrorsList.forEach(err => {
+    const rowIndex = tasks.findIndex(t => t.TaskID === err.entityId);
+    if (rowIndex !== -1 && err.field) {
+      validationErrors[`${rowIndex}-${err.field}`] = err.message;
+    }
+  });
 
   const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
     const updated = [...tasks];
@@ -48,6 +59,7 @@ export default function TasksPage() {
     }
     updated[rowIndex] = task;
     setTasks(updated);
+    runValidation();
   };
 
   const handleBulkDelete = () => {

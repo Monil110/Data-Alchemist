@@ -1,6 +1,9 @@
 "use client";
 import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { parseCSV } from '@/lib/parsers/csv-parser';
+import { useDataStore } from '@/store';
+import { useValidationStore } from '@/store/validation-slice';
 
 interface UploadedFile {
   name: string;
@@ -8,6 +11,8 @@ interface UploadedFile {
   type: string;
   status: 'uploading' | 'success' | 'error';
   progress: number;
+  data?: any;
+  errors?: string[];
 }
 
 export default function UploadPage() {
@@ -16,8 +21,22 @@ export default function UploadPage() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  
+  // Data store actions
+  const setClients = useDataStore(s => s.setClients);
+  const setWorkers = useDataStore(s => s.setWorkers);
+  const setTasks = useDataStore(s => s.setTasks);
+  const runValidation = useValidationStore(s => s.runValidation);
 
-  const handleFileSelect = useCallback((files: FileList | null) => {
+  const detectFileType = (fileName: string): 'clients' | 'workers' | 'tasks' | null => {
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.includes('client')) return 'clients';
+    if (lowerName.includes('worker')) return 'workers';
+    if (lowerName.includes('task')) return 'tasks';
+    return null;
+  };
+
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files) return;
 
     const newFiles: UploadedFile[] = Array.from(files).map(file => ({
@@ -31,30 +50,81 @@ export default function UploadPage() {
     setUploadedFiles(prev => [...prev, ...newFiles]);
     setUploadStatus('uploading');
 
-    // Simulate file upload process
-    newFiles.forEach((file, index) => {
-      const interval = setInterval(() => {
+    // Process each file
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileIndex = newFiles.findIndex(f => f.name === file.name);
+      
+      try {
+        // Detect file type
+        const fileType = detectFileType(file.name);
+        if (!fileType) {
+          throw new Error('Could not determine file type. Please rename file to include "client", "worker", or "task".');
+        }
+
+        // Parse CSV file
+        const result = await parseCSV(file, fileType);
+        console.log('CSV Parse Result:', { fileType, result });
+        
+        // Update file status
         setUploadedFiles(prev => 
-          prev.map((f, i) => {
+          prev.map((f, idx) => {
             if (f.name === file.name) {
-              const newProgress = f.progress + 10;
-              if (newProgress >= 100) {
-                clearInterval(interval);
-                return { ...f, progress: 100, status: 'success' as const };
-              }
-              return { ...f, progress: newProgress };
+              return { 
+                ...f, 
+                progress: 100, 
+                status: 'success' as const,
+                data: result[fileType],
+                errors: result.errors
+              };
             }
             return f;
           })
         );
-      }, 200);
-    });
 
-    // Check if all files are uploaded
+        // Store data in Zustand store
+        if (fileType === 'clients' && result.clients) {
+          console.log('Setting clients data:', result.clients);
+          setClients(result.clients);
+          runValidation();
+        } else if (fileType === 'workers' && result.workers) {
+          console.log('Setting workers data:', result.workers);
+          setWorkers(result.workers);
+          runValidation();
+        } else if (fileType === 'tasks' && result.tasks) {
+          console.log('Setting tasks data:', result.tasks);
+          setTasks(result.tasks);
+          runValidation();
+        }
+
+      } catch (error) {
+        console.error('Error processing file:', file.name, error);
+        setUploadedFiles(prev => 
+          prev.map((f, idx) => {
+            if (f.name === file.name) {
+              return { 
+                ...f, 
+                progress: 100, 
+                status: 'error' as const,
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+              };
+            }
+            return f;
+          })
+        );
+      }
+    }
+
+    // Check if all files are processed
     setTimeout(() => {
-      setUploadStatus('success');
-    }, 3000);
-  }, []);
+      const allProcessed = newFiles.every(file => 
+        uploadedFiles.some(f => f.name === file.name && f.status !== 'uploading')
+      );
+      if (allProcessed) {
+        setUploadStatus('success');
+      }
+    }, 1000);
+  }, [setClients, setWorkers, setTasks, runValidation, uploadedFiles]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -274,6 +344,29 @@ export default function UploadPage() {
                         ></div>
                       </div>
                     </div>
+
+                    {/* Show parsing results */}
+                    {file.status === 'success' && file.data && (
+                      <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                        <div className="text-sm text-green-800">
+                          <strong>✓ Parsed successfully:</strong> {file.data.length} records
+                        </div>
+                        {file.errors && file.errors.length > 0 && (
+                          <div className="mt-2 text-sm text-orange-700">
+                            <strong>⚠ Warnings:</strong> {file.errors.length} issues found
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show errors */}
+                    {file.status === 'error' && file.errors && (
+                      <div className="mt-3 p-3 bg-red-50 rounded-lg">
+                        <div className="text-sm text-red-800">
+                          <strong>✗ Error:</strong> {file.errors[0]}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -1,292 +1,295 @@
 "use client";
 import React, { useState } from 'react';
+import { PrioritizationSettings } from '@/types/rules';
+import PrioritizationInterface from '@/components/priorities/prioritization-interface';
+
+// Mock data for demonstration
+const mockPrioritizationSettings: PrioritizationSettings[] = [
+  {
+    id: '1',
+    name: 'Maximize Fulfillment',
+    description: 'Prioritize completing as many tasks as possible',
+    weights: {
+      fulfillment: 0.8,
+      fairness: 0.1,
+      efficiency: 0.05,
+      cost: 0.03,
+      quality: 0.02,
+    },
+    criteria: [
+      { field: 'taskPriority', weight: 0.6, direction: 'desc', description: 'Task priority' },
+      { field: 'workerEfficiency', weight: 0.4, direction: 'desc', description: 'Worker efficiency' },
+    ],
+    preset: 'fulfillment',
+  },
+  {
+    id: '2',
+    name: 'Fair Distribution',
+    description: 'Ensure fair workload distribution among workers',
+    weights: {
+      fulfillment: 0.3,
+      fairness: 0.7,
+      efficiency: 0.1,
+      cost: 0.05,
+      quality: 0.05,
+    },
+    criteria: [
+      { field: 'workerLoad', weight: 0.5, direction: 'asc', description: 'Worker load balance' },
+      { field: 'taskComplexity', weight: 0.3, direction: 'desc', description: 'Task complexity' },
+      { field: 'workerSkill', weight: 0.2, direction: 'desc', description: 'Worker skill match' },
+    ],
+    preset: 'fairness',
+  },
+  {
+    id: '3',
+    name: 'Cost Optimization',
+    description: 'Minimize operational costs while maintaining quality',
+    weights: {
+      fulfillment: 0.4,
+      fairness: 0.1,
+      efficiency: 0.2,
+      cost: 0.8,
+      quality: 0.1,
+    },
+    criteria: [
+      { field: 'workerCost', weight: 0.7, direction: 'asc', description: 'Worker cost' },
+      { field: 'taskValue', weight: 0.3, direction: 'desc', description: 'Task value' },
+    ],
+    preset: 'cost',
+  },
+];
 
 export default function PrioritiesPage() {
-  const [activeTab, setActiveTab] = useState<'clients' | 'tasks' | 'workers'>('clients');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [settings, setSettings] = useState<PrioritizationSettings[]>(mockPrioritizationSettings);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingSettings, setEditingSettings] = useState<PrioritizationSettings | null>(null);
+  const [activeSettings, setActiveSettings] = useState<string>('1');
 
-  // Mock data
-  const clients: any[] = [];
-  const tasks: any[] = [];
-  const workers: any[] = [];
+  const handleCreateSettings = (newSettings: PrioritizationSettings) => {
+    setSettings([...settings, newSettings]);
+    setShowCreateForm(false);
+  };
 
-  const tabs = [
-    { id: 'clients', label: 'Clients', count: clients.length, icon: '👥' },
-    { id: 'tasks', label: 'Tasks', count: tasks.length, icon: '📋' },
-    { id: 'workers', label: 'Workers', count: workers.length, icon: '👷' }
-  ];
+  const handleUpdateSettings = (updatedSettings: PrioritizationSettings) => {
+    setSettings(settings.map(s => s.id === updatedSettings.id ? updatedSettings : s));
+    setEditingSettings(null);
+  };
 
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case 'clients': return clients;
-      case 'tasks': return tasks;
-      case 'workers': return workers;
-      default: return [];
+  const handleDeleteSettings = (settingsId: string) => {
+    if (confirm('Are you sure you want to delete this prioritization setting?')) {
+      setSettings(settings.filter(s => s.id !== settingsId));
+      if (activeSettings === settingsId) {
+        setActiveSettings(settings[0]?.id || '');
+      }
     }
   };
 
-  const handleSelectAll = () => {
-    const currentData = getCurrentData();
-    if (selectedItems.length === currentData.length) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(currentData.map(item => item.id));
-    }
+  const getWeightColor = (weight: number) => {
+    if (weight >= 0.6) return 'text-green-600';
+    if (weight >= 0.3) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
-  const handleItemSelect = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
+  const getWeightBarColor = (weight: number) => {
+    if (weight >= 0.6) return 'bg-green-500';
+    if (weight >= 0.3) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
-
-  const handleBulkAction = (action: string) => {
-    console.log(`Bulk action: ${action} on ${selectedItems.length} items`);
-    // Implement bulk actions here
-  };
-
-  const currentData = getCurrentData();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Data Priorities Management
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Set and manage priorities for clients, tasks, and workers with AI-powered recommendations
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Prioritization Management</h1>
+          <p className="mt-2 text-gray-600">
+            Configure and manage prioritization strategies for task scheduling and resource allocation.
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{clients.length + tasks.length + workers.length}</p>
-                <p className="text-sm text-gray-600">Total Items</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📊</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-red-600">
-                  {clients.filter(c => c.priority === 'high').length + 
-                   tasks.filter(t => t.priority === 'high').length + 
-                   workers.filter(w => w.priority === 'high').length}
-                </p>
-                <p className="text-sm text-gray-600">High Priority</p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🔴</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {clients.filter(c => c.priority === 'medium').length + 
-                   tasks.filter(t => t.priority === 'medium').length + 
-                   workers.filter(w => w.priority === 'medium').length}
-                </p>
-                <p className="text-sm text-gray-600">Medium Priority</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🟡</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-green-600">
-                  {clients.filter(c => c.priority === 'low').length + 
-                   tasks.filter(t => t.priority === 'low').length + 
-                   workers.filter(w => w.priority === 'low').length}
-                </p>
-                <p className="text-sm text-gray-600">Low Priority</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🟢</span>
-              </div>
-            </div>
-          </div>
+        {/* Action Buttons */}
+        <div className="mb-6 flex flex-wrap gap-3">
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Create New Strategy
+          </button>
+          <button
+            onClick={() => {/* Export functionality */}}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Export Settings
+          </button>
+          <button
+            onClick={() => {/* Import functionality */}}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Import Settings
+          </button>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as 'clients' | 'tasks' | 'workers')}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="mr-2">{tab.icon}</span>
-                  {tab.label}
-                  <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-            </nav>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Settings List */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Prioritization Strategies</h2>
+              <div className="space-y-3">
+                {settings.map(setting => (
+                  <div
+                    key={setting.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      activeSettings === setting.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveSettings(setting.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 mb-1">{setting.name}</h3>
+                        <p className="text-sm text-gray-600 mb-2">{setting.description}</p>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Active:</span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            activeSettings === setting.id
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {activeSettings === setting.id ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingSettings(setting);
+                          }}
+                          className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSettings(setting.id);
+                          }}
+                          className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Tab Content */}
-          <div className="p-6">
-            {/* Bulk Actions */}
-            {currentData.length > 0 && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.length === currentData.length}
-                        onChange={handleSelectAll}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Select All ({selectedItems.length}/{currentData.length})
-                      </span>
-                    </label>
-                  </div>
-                  
-                  {selectedItems.length > 0 && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleBulkAction('high')}
-                        className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200 transition-colors"
-                      >
-                        Set High Priority
-                      </button>
-                      <button
-                        onClick={() => handleBulkAction('medium')}
-                        className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm hover:bg-yellow-200 transition-colors"
-                      >
-                        Set Medium Priority
-                      </button>
-                      <button
-                        onClick={() => handleBulkAction('low')}
-                        className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200 transition-colors"
-                      >
-                        Set Low Priority
-                      </button>
+          {/* Active Settings Details */}
+          <div className="lg:col-span-2">
+            {activeSettings && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                {(() => {
+                  const activeSetting = settings.find(s => s.id === activeSettings);
+                  if (!activeSetting) return null;
+
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h2 className="text-xl font-semibold text-gray-900">{activeSetting.name}</h2>
+                          <p className="text-gray-600">{activeSetting.description}</p>
+                        </div>
+                        <button
+                          onClick={() => setEditingSettings(activeSetting)}
+                          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          Edit Strategy
+                        </button>
+                      </div>
+
+                      {/* Weight Distribution */}
+                      <div className="mb-6">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Weight Distribution</h3>
+                        <div className="space-y-3">
+                          {Object.entries(activeSetting.weights).map(([key, value]) => (
+                            <div key={key} className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span className="font-medium text-gray-700 capitalize">{key}</span>
+                                <span className={`font-medium ${getWeightColor(value)}`}>
+                                  {Math.round(value * 100)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full ${getWeightBarColor(value)}`}
+                                  style={{ width: `${value * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Criteria */}
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Criteria Configuration</h3>
+                        <div className="space-y-3">
+                          {activeSetting.criteria.map((criterion, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div>
+                                <span className="font-medium text-gray-900">{criterion.description}</span>
+                                <span className="ml-2 text-sm text-gray-500">
+                                  ({criterion.direction === 'desc' ? 'Descending' : 'Ascending'})
+                                </span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">
+                                Weight: {Math.round(criterion.weight * 100)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Strategy Summary */}
+                      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-medium text-blue-900 mb-2">Strategy Summary</h4>
+                        <p className="text-sm text-blue-800">
+                          This strategy prioritizes {Object.entries(activeSetting.weights)
+                            .sort(([,a], [,b]) => b - a)
+                            .slice(0, 2)
+                            .map(([key]) => key)
+                            .join(' and ')} 
+                          while considering {activeSetting.criteria.length} criteria for optimal resource allocation.
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
             )}
-
-            {/* Empty State */}
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">📊</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No {activeTab} found</h3>
-              <p className="text-gray-600 mb-6">
-                Upload data files to start managing priorities.
-              </p>
-              <button className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                Upload Data
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* Priority Methods */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">⚖️</span>
+        {/* Create/Edit Modal */}
+        {(showCreateForm || editingSettings) && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <PrioritizationInterface
+                  initialSettings={editingSettings || undefined}
+                  onSave={editingSettings ? handleUpdateSettings : handleCreateSettings}
+                  onCancel={() => {
+                    setShowCreateForm(false);
+                    setEditingSettings(null);
+                  }}
+                />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900">Weight Sliders</h3>
             </div>
-            <p className="text-gray-600 mb-4">
-              Adjust importance weights for different criteria using interactive sliders.
-            </p>
-            <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-              Configure Weights
-            </button>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">🔄</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">Pairwise Comparison</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Compare items in pairs to determine relative importance and priorities.
-            </p>
-            <button className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
-              Start Comparison
-            </button>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">🤖</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">AI Recommendations</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Get AI-powered priority suggestions based on historical data and patterns.
-            </p>
-            <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
-              Get Recommendations
-            </button>
-          </div>
-        </div>
-
-        {/* Priority Presets */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Priority Presets</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="p-4 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors text-left">
-              <h4 className="font-medium text-red-900">Urgent Tasks</h4>
-              <p className="text-sm text-red-700">High priority for time-sensitive items</p>
-            </button>
-            
-            <button className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors text-left">
-              <h4 className="font-medium text-yellow-900">Balanced</h4>
-              <p className="text-sm text-yellow-700">Equal weight distribution</p>
-            </button>
-            
-            <button className="p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-left">
-              <h4 className="font-medium text-green-900">Quality Focus</h4>
-              <p className="text-sm text-green-700">Prioritize quality over speed</p>
-            </button>
-            
-            <button className="p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left">
-              <h4 className="font-medium text-blue-900">Custom</h4>
-              <p className="text-sm text-blue-700">Create your own priority profile</p>
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

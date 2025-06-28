@@ -1,0 +1,6 @@
+TaskID,TaskName,Category,Duration,RequiredSkills,PreferredPhases,MaxConcurrent
+TASK001,Code Review,Development,2,"programming,analysis","1-3",3
+TASK002,Testing,Quality Assurance,1,"testing,analysis","2-4",5
+TASK003,Planning,Management,3,"communication,planning","1-2",2
+TASK004,Design,Creative,2,"design,communication","3-4",2
+TASK005,Documentation,Support,1,"communication,analysis","1-5",4

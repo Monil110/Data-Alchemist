@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(120deg, #f6fbff 0%, #eaf6fa 100%);
+  color: #1a2a36;
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: #1a2a36;
+  margin-bottom: 0.5em;
+}
+
+a {
+  color: #0e7cba;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: #0a5c8e;
+}
+
+button, .btn {
+  font-family: inherit;
+  border-radius: 9999px;
+  padding: 0.5em 1.5em;
+  font-weight: 600;
+  border: none;
+  background: #0e7cba;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(14,124,186,0.08);
+  transition: background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+button:hover, .btn:hover {
+  background: #0a5c8e;
+  box-shadow: 0 4px 16px rgba(14,124,186,0.12);
+}
+
+input, select, textarea {
+  border-radius: 8px;
+  border: 1px solid #d1e3ee;
+  padding: 0.5em 1em;
+  font-size: 1em;
+  background: #fff;
+  color: #1a2a36;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #0e7cba;
+  box-shadow: 0 0 0 2px #b3e0ff;
+  outline: none;
+}
+
+.card, .panel, .shadow-box {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(30, 58, 138, 0.07);
+  padding: 2em;
+  margin-bottom: 2em;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #eaf6fa;
+}
+::-webkit-scrollbar-thumb {
+  background: #b3e0ff;
+  border-radius: 8px;
+}

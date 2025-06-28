@@ -4,4 +4,5 @@ export interface ValidationError {
   message: string;
   affectedEntity: string;
   entityId: string;
+  field?: string;
 }

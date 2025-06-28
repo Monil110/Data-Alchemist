@@ -1,0 +1,6 @@
+WorkerID,WorkerName,Skills,AvailableSlots,MaxLoadPerPhase,WorkerGroup,QualificationLevel
+WRK001,John Smith,"programming,analysis,testing","1-3,5",2,Senior,Expert
+WRK002,Jane Doe,"design,communication,planning","2-4",1,Senior,Expert
+WRK003,Mike Johnson,"programming,debugging","1,3,5",3,Junior,Intermediate
+WRK004,Sarah Wilson,"testing,analysis","2-4",2,Mid,Advanced
+WRK005,Tom Brown,"communication,planning","1-5",1,Senior,Expert

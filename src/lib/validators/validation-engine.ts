@@ -167,6 +167,66 @@ export function validateAll(
     }
   });
 
+  // 6. Malformed lists (non-numeric in AvailableSlots)
+  workers.forEach(worker => {
+    if (worker.AvailableSlots && Array.isArray(worker.AvailableSlots)) {
+      worker.AvailableSlots.forEach((slot, idx) => {
+        if (typeof slot !== 'number' || isNaN(slot)) {
+          errors.push({
+            type: 'MalformedList',
+            severity: 'error',
+            message: `Worker ${worker.WorkerID} has non-numeric value in AvailableSlots at index ${idx}`,
+            affectedEntity: 'worker',
+            entityId: worker.WorkerID,
+          });
+        }
+      });
+    }
+    if (worker.Skills && !Array.isArray(worker.Skills)) {
+      errors.push({
+        type: 'MalformedList',
+        severity: 'error',
+        message: `Worker ${worker.WorkerID} has malformed Skills list`,
+        affectedEntity: 'worker',
+        entityId: worker.WorkerID,
+      });
+    }
+  });
+
+  // 7. Broken JSON in AttributesJSON
+  clients.forEach(client => {
+    if (client.AttributesJSON && typeof client.AttributesJSON === 'string') {
+      try {
+        JSON.parse(client.AttributesJSON);
+      } catch {
+        errors.push({
+          type: 'BrokenJSON',
+          severity: 'error',
+          message: `Client ${client.ClientID} has invalid JSON in AttributesJSON`,
+          affectedEntity: 'client',
+          entityId: client.ClientID,
+        });
+      }
+    }
+  });
+
+  // 8. Overloaded workers (AvailableSlots.length < MaxLoadPerPhase)
+  workers.forEach(worker => {
+    if (
+      Array.isArray(worker.AvailableSlots) &&
+      typeof worker.MaxLoadPerPhase === 'number' &&
+      worker.AvailableSlots.length < worker.MaxLoadPerPhase
+    ) {
+      errors.push({
+        type: 'OverloadedWorker',
+        severity: 'error',
+        message: `Worker ${worker.WorkerID} has MaxLoadPerPhase (${worker.MaxLoadPerPhase}) greater than AvailableSlots (${worker.AvailableSlots.length})`,
+        affectedEntity: 'worker',
+        entityId: worker.WorkerID,
+      });
+    }
+  });
+
   // 8. Circular co-run groups (A→B→C→A)
   // Assume co-run rules have type 'co-run' and a 'group' array of TaskIDs
   const coRunGroups = businessRules.filter(r => r.type === 'co-run' && Array.isArray((r as any).group));

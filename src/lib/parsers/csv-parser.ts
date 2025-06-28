@@ -130,6 +130,8 @@ export function parseCSV(
   file: File, 
   type: 'clients' | 'workers' | 'tasks'
 ): Promise<ParsedData> {
+  console.log('Starting CSV parse for:', { fileName: file.name, type });
+  
   return new Promise((resolve) => {
     Papa.parse(file, {
       header: true,
@@ -141,9 +143,12 @@ export function parseCSV(
                        TASK_HEADER_MAPPING;
         
         const normalized = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return mapping[normalized] || header;
+        const mapped = mapping[normalized] || header;
+        console.log('Header mapping:', { original: header, normalized, mapped });
+        return mapped;
       },
       complete: (results) => {
+        console.log('Papa Parse complete:', { results });
         const errors: string[] = [];
         let parsedData: Client[] | Worker[] | Task[] = [];
 
@@ -169,12 +174,16 @@ export function parseCSV(
           errors.push(`Failed to parse ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
 
-        resolve({
+        const finalResult = {
           [type]: parsedData,
           errors
-        } as ParsedData);
+        } as ParsedData;
+        
+        console.log('Final parse result:', finalResult);
+        resolve(finalResult);
       },
       error: (error) => {
+        console.error('Papa Parse error:', error);
         resolve({
           errors: [error.message]
         });

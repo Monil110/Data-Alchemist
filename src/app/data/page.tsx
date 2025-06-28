@@ -1,40 +1,48 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import { useDataStore } from '@/store';
 
 export default function DataOverviewPage() {
+  const clients = useDataStore(s => s.clients);
+  const workers = useDataStore(s => s.workers);
+  const tasks = useDataStore(s => s.tasks);
+  const validationErrors = useDataStore(s => s.validationErrors);
+
+  console.log('Data Overview - Store State:', { clients, workers, tasks, validationErrors });
+
   const dataEntities = [
     {
       title: 'Clients',
-      count: 0,
+      count: clients.length,
       href: '/data/clients',
       color: 'bg-blue-500',
       icon: '👥',
       description: 'Manage client information and priorities',
-      errorCount: 0
+      errorCount: validationErrors.filter(e => e.entityType === 'client').length
     },
     {
       title: 'Workers',
-      count: 0,
+      count: workers.length,
       href: '/data/workers',
       color: 'bg-green-500',
       icon: '👷',
       description: 'Manage worker skills and availability',
-      errorCount: 0
+      errorCount: validationErrors.filter(e => e.entityType === 'worker').length
     },
     {
       title: 'Tasks',
-      count: 0,
+      count: tasks.length,
       href: '/data/tasks',
       color: 'bg-purple-500',
       icon: '📋',
       description: 'Manage task definitions and requirements',
-      errorCount: 0
+      errorCount: validationErrors.filter(e => e.entityType === 'task').length
     }
   ];
 
-  const totalRecords = 0;
-  const totalErrors = 0;
+  const totalRecords = clients.length + workers.length + tasks.length;
+  const totalErrors = validationErrors.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">

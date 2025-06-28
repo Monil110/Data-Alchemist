@@ -1,16 +1,41 @@
 "use client";
 import React, { useState } from 'react';
+import { useDataStore } from '@/store';
+import { useValidationStore } from '@/store/validation-slice';
+import { NaturalLanguageSearch } from '@/components/ai/natural-language-search';
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [nlFilter, setNlFilter] = useState<string>("");
 
-  // Mock data for demonstration
-  const clients: any[] = [];
+  const clients = useDataStore(s => s.clients);
+  const setClients = useDataStore(s => s.setClients);
+  const runValidation = useValidationStore(s => s.runValidation);
+  const validationErrorsList = useValidationStore(s => s.errors);
 
-  const filteredClients = clients.filter(client => {
+  // Simple parser for natural language queries (demo)
+  function filterClientsByQuery(clients: any[], query: string) {
+    if (!query.trim()) return clients;
+    // Example: "priority 5" or "PriorityLevel 5"
+    const priorityMatch = query.match(/priority(level)?\s*(=|is|:)?\s*(\d+)/i);
+    if (priorityMatch) {
+      const level = parseInt(priorityMatch[3], 10);
+      return clients.filter(c => c.PriorityLevel === level);
+    }
+    // Example: "with task T1"
+    const taskMatch = query.match(/task\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
+    if (taskMatch) {
+      const taskId = taskMatch[3];
+      return clients.filter(c => c.RequestedTaskIDs && c.RequestedTaskIDs.includes(taskId));
+    }
+    // Add more rules as needed
+    return clients;
+  }
+
+  const filteredClients = filterClientsByQuery(clients, nlFilter).filter(client => {
     const matchesSearch = client.ClientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.ClientID?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = filterPriority === 'all' || client.PriorityLevel?.toString() === filterPriority;
@@ -46,6 +71,24 @@ export default function ClientsPage() {
     if (priority >= 2) return 'Medium';
     return 'Low';
   };
+
+  const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
+    const updated = [...clients];
+    const client = { ...updated[rowIndex] };
+    client[columnId] = value;
+    updated[rowIndex] = client;
+    setClients(updated);
+    runValidation();
+  };
+
+  // Map validation errors to cell keys
+  const validationErrors: Record<string, string> = {};
+  validationErrorsList.forEach(err => {
+    const rowIndex = clients.findIndex(c => c.ClientID === err.entityId);
+    if (rowIndex !== -1 && err.field) {
+      validationErrors[`${rowIndex}-${err.field}`] = err.message;
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -265,6 +308,8 @@ export default function ClientsPage() {
             </div>
           )}
         </div>
+
+        <NaturalLanguageSearch onSearch={setNlFilter} placeholder="e.g. Priority 5, with task T1" />
       </div>
     </div>
   );

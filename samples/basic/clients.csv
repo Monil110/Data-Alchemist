@@ -1,0 +1,6 @@
+ClientID,ClientName,PriorityLevel,RequestedTaskIDs,GroupTag,AttributesJSON
+CLI001,Acme Corporation,4,"TASK001,TASK002",Enterprise,{"industry":"technology","region":"north"}
+CLI002,Global Solutions,3,TASK003,Enterprise,{"industry":"consulting","region":"south"}
+CLI003,Startup Inc,2,"TASK001,TASK004",Startup,{"industry":"fintech","region":"east"}
+CLI004,Local Business,1,TASK002,Small,{"industry":"retail","region":"west"}
+CLI005,Government Agency,5,"TASK003,TASK004,TASK005",Government,{"industry":"public","region":"central"}

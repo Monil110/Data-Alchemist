@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { useDataStore } from '@/store';
 import { DataGrid } from '@/components/data-grid/data-grid';
@@ -20,13 +21,22 @@ const workerColumns: ColumnDef<Worker, any>[] = [
 export default function WorkersPage() {
   const workers = useDataStore(s => s.workers);
   const setWorkers = useDataStore(s => s.setWorkers);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const runValidation = useValidationStore(s => s.runValidation);
+  const validationErrorsList = useValidationStore(s => s.errors);
 
   useEffect(() => {
     runValidation();
   }, [workers, runValidation]);
+
+  // Map validation errors to cell keys
+  const validationErrors: Record<string, string> = {};
+  validationErrorsList.forEach(err => {
+    const rowIndex = workers.findIndex(w => w.WorkerID === err.entityId);
+    if (rowIndex !== -1 && err.field) {
+      validationErrors[`${rowIndex}-${err.field}`] = err.message;
+    }
+  });
 
   const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
     const updated = [...workers];
@@ -35,19 +45,19 @@ export default function WorkersPage() {
     if (columnId === 'MaxLoadPerPhase') {
       const num = Number(value);
       if (isNaN(num) || num < 1) {
-        setValidationErrors(prev => ({ ...prev, [`${rowIndex}-${columnId}`]: 'Must be a positive number' }));
+        validationErrors[`${rowIndex}-${columnId}`] = 'Must be a positive number';
+        worker[columnId] = num;
       } else {
         delete validationErrors[`${rowIndex}-${columnId}`];
-        setValidationErrors({ ...validationErrors });
         worker[columnId] = num;
       }
     } else {
       worker[columnId] = value;
       delete validationErrors[`${rowIndex}-${columnId}`];
-      setValidationErrors({ ...validationErrors });
     }
     updated[rowIndex] = worker;
     setWorkers(updated);
+    runValidation();
   };
 
   const handleBulkDelete = () => {
