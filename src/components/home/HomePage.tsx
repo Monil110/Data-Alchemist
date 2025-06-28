@@ -170,7 +170,7 @@ const HomePage = () => {
       indigo: 'bg-indigo-600 hover:bg-indigo-700',
       teal: 'bg-teal-600 hover:bg-teal-700'
     };
-    return colorMap[color] || colorMap.blue;
+    return colorMap[color] || colorMap['blue'];
   };
 
   const getActivityIcon = (type: RecentActivity['type']) => {

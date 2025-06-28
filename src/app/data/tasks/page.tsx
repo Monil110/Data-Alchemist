@@ -31,7 +31,6 @@ export default function TasksPage() {
   }, [tasks, runValidation]);
 
   // Map validation errors to cell keys
-  const validationErrors: Record<string, string> = {};
   validationErrorsList.forEach(err => {
     const rowIndex = tasks.findIndex(t => t.TaskID === err.entityId);
     if (rowIndex !== -1 && err.field) {
@@ -68,6 +67,57 @@ export default function TasksPage() {
     setTasks(filtered);
     setSelectedRows([]);
   };
+
+  // Advanced parser for natural language queries
+  function filterTasksByQuery(tasks: any[], query: string) {
+    if (!query.trim()) return tasks;
+    let filtered = tasks;
+    // Numeric comparison: "duration > 120" or "Duration >= 60"
+    const durationMatch = query.match(/duration\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
+    if (durationMatch) {
+      const op = durationMatch[1] || '=';
+      const duration = parseInt(durationMatch[2], 10);
+      filtered = filtered.filter(t => {
+        if (op === '>' || op === 'gt') return t.Duration > duration;
+        if (op === '<' || op === 'lt') return t.Duration < duration;
+        if (op === '>=' || op === 'ge') return t.Duration >= duration;
+        if (op === '<=' || op === 'le') return t.Duration <= duration;
+        return t.Duration === duration;
+      });
+    }
+    // Array inclusion: "with skill S1" or "skill S1"
+    const skillMatch = query.match(/skill\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
+    if (skillMatch) {
+      const skillId = skillMatch[3];
+      filtered = filtered.filter(t => t.RequiredSkillIDs && t.RequiredSkillIDs.includes(skillId));
+    }
+    // Status filter: "active" or "status active"
+    const statusMatch = query.match(/status\s*(=|is|:)?\s*(\w+)/i);
+    if (statusMatch) {
+      const status = statusMatch[2];
+      filtered = filtered.filter(t => t.Status && t.Status.toLowerCase() === status.toLowerCase());
+    }
+    // Phase filter: "phase 1" or "phase 1"
+    const phaseMatch = query.match(/phase\s*(=|is|:)?\s*(\d+)/i);
+    if (phaseMatch) {
+      const phase = parseInt(phaseMatch[2], 10);
+      filtered = filtered.filter(t => t.Phase === phase);
+    }
+    // Logical AND: "duration > 120 and with skill S1"
+    if (/ and /i.test(query)) {
+      const parts = query.split(/ and /i);
+      return parts.reduce((acc, part) => filterTasksByQuery(acc, part), tasks);
+    }
+    // Logical OR: "duration 180 or duration 240"
+    if (/ or /i.test(query)) {
+      const parts = query.split(/ or /i);
+      const sets = parts.map(part => filterTasksByQuery(tasks, part));
+      // Union of all sets
+      const union = sets.flat().filter((v, i, arr) => arr.findIndex(x => x.TaskID === v.TaskID) === i);
+      return union;
+    }
+    return filtered;
+  }
 
   return (
     <div style={{ padding: 24 }}>

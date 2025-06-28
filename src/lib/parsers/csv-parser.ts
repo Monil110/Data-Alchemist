@@ -2,6 +2,7 @@
 import * as Papa from 'papaparse';
 import { Client, Worker, Task, ParsedData } from '@/types';
 import { parseCommaSeparated, parsePhaseRange, parseJSON } from '@/lib/utils';
+import fuzzysort from 'fuzzysort';
 
 interface HeaderMapping {
   [key: string]: string;
@@ -69,11 +70,30 @@ const TASK_HEADER_MAPPING: HeaderMapping = {
   'concurrent': 'MaxConcurrent'
 };
 
+const CLIENT_FIELDS = [
+  'ClientID', 'ClientName', 'PriorityLevel', 'RequestedTaskIDs', 'GroupTag', 'AttributesJSON'
+];
+const WORKER_FIELDS = [
+  'WorkerID', 'WorkerName', 'Skills', 'AvailableSlots', 'MaxLoadPerPhase', 'WorkerGroup', 'QualificationLevel'
+];
+const TASK_FIELDS = [
+  'TaskID', 'TaskName', 'Category', 'Duration', 'RequiredSkills', 'PreferredPhases', 'MaxConcurrent'
+];
+
 function normalizeHeaders(headers: string[], mapping: HeaderMapping): string[] {
   return headers.map(header => {
     const normalized = header.toLowerCase().replace(/[^a-z0-9]/g, '');
     return mapping[normalized] || header;
   });
+}
+
+function fuzzyMapHeader(header: string, type: 'clients' | 'workers' | 'tasks'): string {
+  const fields = type === 'clients' ? CLIENT_FIELDS : type === 'workers' ? WORKER_FIELDS : TASK_FIELDS;
+  const result = fuzzysort.go(header, fields);
+  if (result.length > 0 && result[0].score > -1000) {
+    return result[0].target;
+  }
+  return header;
 }
 
 function parseClientRow(row: any): Client | null {
@@ -141,11 +161,12 @@ export function parseCSV(
         const mapping = type === 'clients' ? CLIENT_HEADER_MAPPING :
                        type === 'workers' ? WORKER_HEADER_MAPPING :
                        TASK_HEADER_MAPPING;
-        
         const normalized = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const mapped = mapping[normalized] || header;
-        console.log('Header mapping:', { original: header, normalized, mapped });
-        return mapped;
+        let mapped = mapping[normalized];
+        if (!mapped) {
+          mapped = fuzzyMapHeader(header, type);
+        }
+        return mapped || header;
       },
       complete: (results) => {
         console.log('Papa Parse complete:', { results });

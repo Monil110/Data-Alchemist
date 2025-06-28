@@ -2,65 +2,67 @@
 import React, { useState } from 'react';
 import { PrioritizationSettings } from '@/types/rules';
 import PrioritizationInterface from '@/components/priorities/prioritization-interface';
-
-// Mock data for demonstration
-const mockPrioritizationSettings: PrioritizationSettings[] = [
-  {
-    id: '1',
-    name: 'Maximize Fulfillment',
-    description: 'Prioritize completing as many tasks as possible',
-    weights: {
-      fulfillment: 0.8,
-      fairness: 0.1,
-      efficiency: 0.05,
-      cost: 0.03,
-      quality: 0.02,
-    },
-    criteria: [
-      { field: 'taskPriority', weight: 0.6, direction: 'desc', description: 'Task priority' },
-      { field: 'workerEfficiency', weight: 0.4, direction: 'desc', description: 'Worker efficiency' },
-    ],
-    preset: 'fulfillment',
-  },
-  {
-    id: '2',
-    name: 'Fair Distribution',
-    description: 'Ensure fair workload distribution among workers',
-    weights: {
-      fulfillment: 0.3,
-      fairness: 0.7,
-      efficiency: 0.1,
-      cost: 0.05,
-      quality: 0.05,
-    },
-    criteria: [
-      { field: 'workerLoad', weight: 0.5, direction: 'asc', description: 'Worker load balance' },
-      { field: 'taskComplexity', weight: 0.3, direction: 'desc', description: 'Task complexity' },
-      { field: 'workerSkill', weight: 0.2, direction: 'desc', description: 'Worker skill match' },
-    ],
-    preset: 'fairness',
-  },
-  {
-    id: '3',
-    name: 'Cost Optimization',
-    description: 'Minimize operational costs while maintaining quality',
-    weights: {
-      fulfillment: 0.4,
-      fairness: 0.1,
-      efficiency: 0.2,
-      cost: 0.8,
-      quality: 0.1,
-    },
-    criteria: [
-      { field: 'workerCost', weight: 0.7, direction: 'asc', description: 'Worker cost' },
-      { field: 'taskValue', weight: 0.3, direction: 'desc', description: 'Task value' },
-    ],
-    preset: 'cost',
-  },
-];
+import { useDataStore } from '@/store';
 
 export default function PrioritiesPage() {
-  const [settings, setSettings] = useState<PrioritizationSettings[]>(mockPrioritizationSettings);
+  const { clients, workers, tasks } = useDataStore();
+  
+  // Default prioritization settings - in a real app, these would come from a store
+  const [settings, setSettings] = useState<PrioritizationSettings[]>([
+    {
+      id: '1',
+      name: 'Maximize Fulfillment',
+      description: 'Prioritize completing as many tasks as possible',
+      weights: {
+        fulfillment: 0.8,
+        fairness: 0.1,
+        efficiency: 0.05,
+        cost: 0.03,
+        quality: 0.02,
+      },
+      criteria: [
+        { field: 'taskPriority', weight: 0.6, direction: 'desc', description: 'Task priority' },
+        { field: 'workerEfficiency', weight: 0.4, direction: 'desc', description: 'Worker efficiency' },
+      ],
+      preset: 'fulfillment',
+    },
+    {
+      id: '2',
+      name: 'Fair Distribution',
+      description: 'Ensure fair workload distribution among workers',
+      weights: {
+        fulfillment: 0.3,
+        fairness: 0.7,
+        efficiency: 0.1,
+        cost: 0.05,
+        quality: 0.05,
+      },
+      criteria: [
+        { field: 'workerLoad', weight: 0.5, direction: 'asc', description: 'Worker load balance' },
+        { field: 'taskComplexity', weight: 0.3, direction: 'desc', description: 'Task complexity' },
+        { field: 'workerSkill', weight: 0.2, direction: 'desc', description: 'Worker skill match' },
+      ],
+      preset: 'fairness',
+    },
+    {
+      id: '3',
+      name: 'Cost Optimization',
+      description: 'Minimize operational costs while maintaining quality',
+      weights: {
+        fulfillment: 0.4,
+        fairness: 0.1,
+        efficiency: 0.2,
+        cost: 0.8,
+        quality: 0.1,
+      },
+      criteria: [
+        { field: 'workerCost', weight: 0.7, direction: 'asc', description: 'Worker cost' },
+        { field: 'taskValue', weight: 0.3, direction: 'desc', description: 'Task value' },
+      ],
+      preset: 'cost',
+    },
+  ]);
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingSettings, setEditingSettings] = useState<PrioritizationSettings | null>(null);
   const [activeSettings, setActiveSettings] = useState<string>('1');

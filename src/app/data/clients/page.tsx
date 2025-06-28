@@ -16,23 +16,43 @@ export default function ClientsPage() {
   const runValidation = useValidationStore(s => s.runValidation);
   const validationErrorsList = useValidationStore(s => s.errors);
 
-  // Simple parser for natural language queries (demo)
+  // Advanced parser for natural language queries
   function filterClientsByQuery(clients: any[], query: string) {
     if (!query.trim()) return clients;
-    // Example: "priority 5" or "PriorityLevel 5"
-    const priorityMatch = query.match(/priority(level)?\s*(=|is|:)?\s*(\d+)/i);
-    if (priorityMatch) {
-      const level = parseInt(priorityMatch[3], 10);
-      return clients.filter(c => c.PriorityLevel === level);
+    let filtered = clients;
+    // Numeric comparison: "priority > 3" or "PriorityLevel >= 2"
+    const numComp = query.match(/priority(level)?\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
+    if (numComp) {
+      const op = numComp[2] || '=';
+      const level = parseInt(numComp[3], 10);
+      filtered = filtered.filter(c => {
+        if (op === '>' || op === 'gt') return c.PriorityLevel > level;
+        if (op === '<' || op === 'lt') return c.PriorityLevel < level;
+        if (op === '>=' || op === 'ge') return c.PriorityLevel >= level;
+        if (op === '<=' || op === 'le') return c.PriorityLevel <= level;
+        return c.PriorityLevel === level;
+      });
     }
-    // Example: "with task T1"
+    // Array inclusion: "with task T1" or "task T1"
     const taskMatch = query.match(/task\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
     if (taskMatch) {
       const taskId = taskMatch[3];
-      return clients.filter(c => c.RequestedTaskIDs && c.RequestedTaskIDs.includes(taskId));
+      filtered = filtered.filter(c => c.RequestedTaskIDs && c.RequestedTaskIDs.includes(taskId));
     }
-    // Add more rules as needed
-    return clients;
+    // Logical AND: "priority > 3 and with task T1"
+    if (/ and /i.test(query)) {
+      const parts = query.split(/ and /i);
+      return parts.reduce((acc, part) => filterClientsByQuery(acc, part), clients);
+    }
+    // Logical OR: "priority 5 or priority 4"
+    if (/ or /i.test(query)) {
+      const parts = query.split(/ or /i);
+      const sets = parts.map(part => filterClientsByQuery(clients, part));
+      // Union of all sets
+      const union = sets.flat().filter((v, i, arr) => arr.findIndex(x => x.ClientID === v.ClientID) === i);
+      return union;
+    }
+    return filtered;
   }
 
   const filteredClients = filterClientsByQuery(clients, nlFilter).filter(client => {

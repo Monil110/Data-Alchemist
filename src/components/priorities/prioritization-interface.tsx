@@ -147,20 +147,51 @@ export default function PrioritizationInterface({
 
   const handleCriteriaChange = (index: number, field: keyof PrioritizationCriteria, value: any) => {
     const newCriteria = [...settings.criteria];
+    const currentCriteria = newCriteria[index];
+    
+    if (!currentCriteria) return;
+    
     if (field === 'direction') {
-      newCriteria[index] = { ...newCriteria[index], [field]: value as "desc" | "asc" };
-    } else {
-      newCriteria[index] = { ...newCriteria[index], [field]: value };
+      newCriteria[index] = { 
+        field: currentCriteria.field,
+        weight: currentCriteria.weight,
+        direction: value as "desc" | "asc",
+        description: currentCriteria.description
+      };
+    } else if (field === 'field') {
+      newCriteria[index] = { 
+        field: value,
+        weight: currentCriteria.weight,
+        direction: currentCriteria.direction,
+        description: currentCriteria.description
+      };
+    } else if (field === 'weight') {
+      newCriteria[index] = { 
+        field: currentCriteria.field,
+        weight: value,
+        direction: currentCriteria.direction,
+        description: currentCriteria.description
+      };
+    } else if (field === 'description') {
+      newCriteria[index] = { 
+        field: currentCriteria.field,
+        weight: currentCriteria.weight,
+        direction: currentCriteria.direction,
+        description: value
+      };
     }
     setSettings({ ...settings, criteria: newCriteria });
   };
 
   const addCriteria = () => {
+    const firstCriteria = availableCriteria[0];
+    if (!firstCriteria) return;
+    
     const newCriteria: PrioritizationCriteria = {
-      field: availableCriteria[0].field,
+      field: firstCriteria.field,
       weight: 0.5,
       direction: 'desc',
-      description: availableCriteria[0].description,
+      description: firstCriteria.description,
     };
     setSettings({
       ...settings,
@@ -181,7 +212,7 @@ export default function PrioritizationInterface({
       name: preset.name,
       description: preset.description,
       weights: preset.weights,
-      criteria: preset.criteria,
+      criteria: preset.criteria as PrioritizationCriteria[],
       preset: preset.id,
     });
     setCriteriaRanking(preset.criteria.map(c => c.field));
@@ -190,7 +221,9 @@ export default function PrioritizationInterface({
   const handleRankingChange = (fromIndex: number, toIndex: number) => {
     const newRanking = [...criteriaRanking];
     const [movedItem] = newRanking.splice(fromIndex, 1);
-    newRanking.splice(toIndex, 0, movedItem);
+    if (movedItem) {
+      newRanking.splice(toIndex, 0, movedItem);
+    }
     setCriteriaRanking(newRanking);
     
     // Update criteria weights based on ranking

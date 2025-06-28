@@ -2,75 +2,32 @@
 import React, { useState } from 'react';
 import { BusinessRule, PrioritizationSettings } from '@/types/rules';
 import ExportSystem from '@/components/export/export-system';
-
-// Mock data for demonstration
-const mockClients = [
-  { id: '1', name: 'Client A', priority: 'high', slots: 5 },
-  { id: '2', name: 'Client B', priority: 'medium', slots: 3 },
-  { id: '3', name: 'Client C', priority: 'low', slots: 2 },
-];
-
-const mockWorkers = [
-  { id: '1', name: 'Worker A', skills: ['task1', 'task2'], efficiency: 0.9 },
-  { id: '2', name: 'Worker B', skills: ['task2', 'task3'], efficiency: 0.8 },
-  { id: '3', name: 'Worker C', skills: ['task1', 'task3'], efficiency: 0.7 },
-];
-
-const mockTasks = [
-  { id: '1', name: 'Task A', duration: 2, priority: 'high' },
-  { id: '2', name: 'Task B', duration: 1, priority: 'medium' },
-  { id: '3', name: 'Task C', duration: 3, priority: 'low' },
-];
-
-const mockRules: BusinessRule[] = [
-  {
-    id: '1',
-    name: 'Morning Task Co-run',
-    description: 'Tasks A and B must run together in morning slots',
-    type: 'co-run',
-    enabled: true,
-    priority: 1,
-    taskIds: ['task1', 'task2'],
-    mustRunTogether: true,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-  },
-];
-
-const mockPrioritizationSettings: PrioritizationSettings[] = [
-  {
-    id: '1',
-    name: 'Maximize Fulfillment',
-    description: 'Prioritize completing as many tasks as possible',
-    weights: {
-      fulfillment: 0.8,
-      fairness: 0.1,
-      efficiency: 0.05,
-      cost: 0.03,
-      quality: 0.02,
-    },
-    criteria: [
-      { field: 'taskPriority', weight: 0.6, direction: 'desc', description: 'Task priority' },
-      { field: 'workerEfficiency', weight: 0.4, direction: 'desc', description: 'Worker efficiency' },
-    ],
-    preset: 'fulfillment',
-  },
-];
-
-interface ExportData {
-  clients: any[];
-  workers: any[];
-  tasks: any[];
-  rules: BusinessRule[];
-  prioritizationSettings: PrioritizationSettings[];
-  metadata?: {
-    exportDate: string;
-    version: string;
-    totalRecords: number;
-  };
-}
+import { useDataStore } from '@/store';
 
 export default function ExportPage() {
+  const { clients, workers, tasks, businessRules } = useDataStore();
+  
+  // Mock prioritization settings for now since the store is empty
+  const prioritizationSettings: PrioritizationSettings[] = [
+    {
+      id: '1',
+      name: 'Maximize Fulfillment',
+      description: 'Prioritize completing as many tasks as possible',
+      weights: {
+        fulfillment: 0.8,
+        fairness: 0.1,
+        efficiency: 0.05,
+        cost: 0.03,
+        quality: 0.02,
+      },
+      criteria: [
+        { field: 'taskPriority', weight: 0.6, direction: 'desc', description: 'Task priority' },
+        { field: 'workerEfficiency', weight: 0.4, direction: 'desc', description: 'Worker efficiency' },
+      ],
+      preset: 'fulfillment',
+    },
+  ];
+
   const [exportHistory, setExportHistory] = useState<Array<{
     id: string;
     date: string;
@@ -94,8 +51,8 @@ export default function ExportPage() {
     },
   ]);
 
-  const handleExport = (exportData: ExportData) => {
-    // Mock export functionality
+  const handleExport = (exportData: any) => {
+    // Real export functionality
     const exportRecord = {
       id: `export_${Date.now()}`,
       date: new Date().toISOString(),
@@ -123,11 +80,11 @@ export default function ExportPage() {
   };
 
   const getDataStats = () => ({
-    totalClients: mockClients.length,
-    totalWorkers: mockWorkers.length,
-    totalTasks: mockTasks.length,
-    totalRules: mockRules.length,
-    totalSettings: mockPrioritizationSettings.length,
+    totalClients: clients.length,
+    totalWorkers: workers.length,
+    totalTasks: tasks.length,
+    totalRules: businessRules.length,
+    totalSettings: prioritizationSettings.length,
     lastUpdated: new Date().toISOString(),
   });
 
@@ -148,11 +105,11 @@ export default function ExportPage() {
           {/* Export System */}
           <div className="lg:col-span-2">
             <ExportSystem
-              clients={mockClients}
-              workers={mockWorkers}
-              tasks={mockTasks}
-              rules={mockRules}
-              prioritizationSettings={mockPrioritizationSettings}
+              clients={clients}
+              workers={workers}
+              tasks={tasks}
+              rules={businessRules as any}
+              prioritizationSettings={prioritizationSettings}
               onExport={handleExport}
             />
           </div>
