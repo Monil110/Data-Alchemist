@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BusinessRule, PrioritizationSettings } from '@/types/rules';
 
 interface ExportSystemProps {
@@ -58,6 +58,11 @@ export default function ExportSystem({
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  // Clear validation errors when selections change
+  useEffect(() => {
+    setValidationErrors([]);
+  }, [selectedData, selectedFormat, exportType]);
+
   const dataTypes = [
     { key: 'clients', label: 'Clients', count: clients.length, icon: '👥' },
     { key: 'workers', label: 'Workers', count: workers.length, icon: '👷' },
@@ -75,7 +80,7 @@ export default function ExportSystem({
       errors.push('Please select at least one data type to export');
     }
 
-    // Check if data exists for selected types
+    // Check if data exists for selected types (only if they are selected)
     if (selectedData.clients && clients.length === 0) {
       errors.push('No client data available for export');
     }

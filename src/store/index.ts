@@ -15,12 +15,53 @@ interface DataStoreActions {
   reset: () => void;
 }
 
+// Sample business rules for demonstration
+const sampleBusinessRules: BusinessRule[] = [
+  {
+    id: 'rule-001',
+    type: 'co-run',
+    name: 'High Priority Task Coordination',
+    description: 'Ensure high priority tasks run together',
+    enabled: true,
+    priority: 1,
+    taskIds: ['T001', 'T002'],
+    mustRunTogether: true,
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  {
+    id: 'rule-002',
+    type: 'load-limit',
+    name: 'Worker Load Protection',
+    description: 'Limit worker load to prevent overloading',
+    enabled: true,
+    priority: 2,
+    workerGroup: ['frontend'],
+    maxSlotsPerPhase: 3,
+    createdAt: new Date('2024-01-02'),
+    updatedAt: new Date('2024-01-02'),
+  },
+  {
+    id: 'rule-003',
+    type: 'slot-restriction',
+    name: 'Enterprise Client Restrictions',
+    description: 'Enterprise clients can only work with senior workers',
+    enabled: true,
+    priority: 3,
+    clientGroup: ['enterprise'],
+    workerGroup: ['senior'],
+    minCommonSlots: 2,
+    createdAt: new Date('2024-01-03'),
+    updatedAt: new Date('2024-01-03'),
+  }
+];
+
 const initialState: DataStore = {
   clients: [],
   workers: [],
   tasks: [],
   validationErrors: [],
-  businessRules: [],
+  businessRules: sampleBusinessRules,
   isLoading: false,
   lastUpdated: null,
 };
