@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BusinessRule } from '@/types/rules';
+import { aiClient } from '@/lib/ai/ai-client';
 
 export async function POST(req: NextRequest) {
   const { clients, workers, tasks } = await req.json();
 
-  // Use OpenAI API (server-side)
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'OpenAI API key not set.' }, { status: 500 });
+  if (!process.env['GEMINI_API_KEY']) {
+    return NextResponse.json({ error: 'Gemini API key not set.' }, { status: 500 });
   }
 
   const analyzeData = (clients: any[], workers: any[], tasks: any[]) => {
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
         priority: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
-        workerGroup: workers.map(w => w.WorkerGroup).filter(Boolean),
+        workerGroup: workers.map((w: any) => w.WorkerGroup).filter(Boolean),
         maxSlotsPerPhase: 4,
         phaseType: 'all',
       } as any);
@@ -67,7 +66,7 @@ export async function POST(req: NextRequest) {
         priority: 2,
         createdAt: new Date(),
         updatedAt: new Date(),
-        taskIds: tasks.filter(t => t.Category === 'high-priority').map(t => t.TaskID),
+        taskIds: tasks.filter((t: any) => t.Category === 'high-priority').map((t: any) => t.TaskID),
         mustRunTogether: true,
       } as any);
     }
@@ -83,8 +82,8 @@ export async function POST(req: NextRequest) {
         priority: 3,
         createdAt: new Date(),
         updatedAt: new Date(),
-        clientGroup: clients.map(c => c.GroupTag).filter(Boolean),
-        workerGroup: workers.map(w => w.WorkerGroup).filter(Boolean),
+        clientGroup: clients.map((c: any) => c.GroupTag).filter(Boolean),
+        workerGroup: workers.map((w: any) => w.WorkerGroup).filter(Boolean),
         minCommonSlots: 2,
       } as any);
     }
@@ -100,7 +99,7 @@ export async function POST(req: NextRequest) {
         priority: 4,
         createdAt: new Date(),
         updatedAt: new Date(),
-        taskId: tasks.find(t => t.Duration > 3)?.TaskID || '',
+        taskId: tasks.find((t: any) => t.Duration > 3)?.TaskID || '',
         allowedPhases: ['morning', 'afternoon'],
         phaseRange: { start: 1, end: 3 },
       } as any);
@@ -115,40 +114,8 @@ export async function POST(req: NextRequest) {
 
     // If we have recommendations, enhance them with AI
     if (recommendations.length > 0) {
-      const prompt = `You are an expert business rule consultant. Based on the following data insights, provide brief, actionable descriptions for business rules that would improve the system.
-
-Data Insights:
-- ${insights.clientCount} clients, ${insights.workerCount} workers, ${insights.taskCount} tasks
-- ${insights.highPriorityClients} high priority clients
-- ${insights.overloadedWorkers} potentially overloaded workers
-- ${insights.longTasks} long-duration tasks
-- Skill gaps: ${insights.skillGaps.join(', ') || 'None detected'}
-
-Provide 2-3 brief, practical recommendations for business rules that would address these issues. Keep each description under 100 words.`;
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a business rule consultant. Provide concise, practical recommendations.' 
-            },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 300,
-          temperature: 0.3,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const aiSuggestions = data.choices?.[0]?.message?.content?.trim();
+      try {
+        const aiSuggestions = await aiClient.generateRecommendations(insights);
         
         // Enhance recommendations with AI insights
         if (aiSuggestions) {
@@ -156,6 +123,9 @@ Provide 2-3 brief, practical recommendations for business rules that would addre
             rec.description = `${rec.description} ${aiSuggestions.split('\n')[index] || ''}`;
           });
         }
+      } catch (aiError) {
+        console.error('AI enhancement failed:', aiError);
+        // Continue without AI enhancement
       }
     }
 

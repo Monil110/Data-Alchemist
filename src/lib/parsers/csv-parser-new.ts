@@ -118,7 +118,8 @@ function parseNumberArray(field: any): number[] {
   // Handle JSON array format like "[1,2,3]"
   if (str.startsWith('[') && str.endsWith(']')) {
     try {
-      return JSON.parse(str).filter((n: any) => !isNaN(Number(n))).map(Number);
+      const parsed = JSON.parse(str);
+      return Array.isArray(parsed) ? parsed.filter((n: any) => !isNaN(Number(n))).map(Number) : [];
     } catch {
       // If JSON parsing fails, try comma-separated
       return str.slice(1, -1).split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
@@ -263,34 +264,34 @@ export function normalizeData(data: any[], type: string): any[] {
       switch(type) {
         case 'clients':
           return {
-            ClientID: row.ClientID || `C${String(index + 1).padStart(3, '0')}`,
-            ClientName: row.ClientName || 'Unknown Client',
-            PriorityLevel: parseInt(row.PriorityLevel) || 1,
-            RequestedTaskIDs: parseArrayField(row.RequestedTaskIDs),
-            GroupTag: row.GroupTag || 'Default',
-            AttributesJSON: parseJSON(row.AttributesJSON)
+            ClientID: row?.ClientID || `C${String(index + 1).padStart(3, '0')}`,
+            ClientName: row?.ClientName || 'Unknown Client',
+            PriorityLevel: parseInt(row?.PriorityLevel) || 1,
+            RequestedTaskIDs: parseArrayField(row?.RequestedTaskIDs),
+            GroupTag: row?.GroupTag || 'Default',
+            AttributesJSON: parseJSON(row?.AttributesJSON)
           };
         
         case 'workers':
           return {
-            WorkerID: row.WorkerID || `W${String(index + 1).padStart(3, '0')}`,
-            WorkerName: row.WorkerName || 'Unknown Worker',
-            Skills: parseArrayField(row.Skills),
-            AvailableSlots: parseNumberArray(row.AvailableSlots),
-            MaxLoadPerPhase: parseInt(row.MaxLoadPerPhase) || 1,
-            WorkerGroup: row.WorkerGroup || 'Default',
-            QualificationLevel: row.QualificationLevel || '1'
+            WorkerID: row?.WorkerID || `W${String(index + 1).padStart(3, '0')}`,
+            WorkerName: row?.WorkerName || 'Unknown Worker',
+            Skills: parseArrayField(row?.Skills),
+            AvailableSlots: parseNumberArray(row?.AvailableSlots),
+            MaxLoadPerPhase: parseInt(row?.MaxLoadPerPhase) || 1,
+            WorkerGroup: row?.WorkerGroup || 'Default',
+            QualificationLevel: row?.QualificationLevel || '1'
           };
         
         case 'tasks':
           return {
-            TaskID: row.TaskID || `T${String(index + 1).padStart(3, '0')}`,
-            TaskName: row.TaskName || 'Unknown Task',
-            Category: row.Category || 'General',
-            Duration: parseInt(row.Duration) || 1,
-            RequiredSkills: parseArrayField(row.RequiredSkills),
-            PreferredPhases: parseNumberArray(row.PreferredPhases),
-            MaxConcurrent: parseInt(row.MaxConcurrent) || 1
+            TaskID: row?.TaskID || `T${String(index + 1).padStart(3, '0')}`,
+            TaskName: row?.TaskName || 'Unknown Task',
+            Category: row?.Category || 'General',
+            Duration: parseInt(row?.Duration) || 1,
+            RequiredSkills: parseArrayField(row?.RequiredSkills),
+            PreferredPhases: parseNumberArray(row?.PreferredPhases),
+            MaxConcurrent: parseInt(row?.MaxConcurrent) || 1
           };
         
         default:

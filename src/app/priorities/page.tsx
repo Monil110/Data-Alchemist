@@ -5,8 +5,6 @@ import PrioritizationInterface from '@/components/priorities/prioritization-inte
 import { useDataStore } from '@/store';
 
 export default function PrioritiesPage() {
-  const { clients, workers, tasks } = useDataStore();
-  
   // Default prioritization settings - in a real app, these would come from a store
   const [settings, setSettings] = useState<PrioritizationSettings[]>([
     {
@@ -281,7 +279,7 @@ export default function PrioritiesPage() {
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <PrioritizationInterface
-                  initialSettings={editingSettings || undefined}
+                  {...(editingSettings && { initialSettings: editingSettings })}
                   onSave={editingSettings ? handleUpdateSettings : handleCreateSettings}
                   onCancel={() => {
                     setShowCreateForm(false);

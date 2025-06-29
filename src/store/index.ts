@@ -27,14 +27,20 @@ const initialState: DataStore = {
 export const useDataStore = create<DataStore & DataStoreActions>((set, get) => ({
   ...initialState,
 
-  setClients: (clients) => 
-    set({ clients, lastUpdated: new Date() }),
+  setClients: (clients) => {
+    console.log('Store: Setting clients:', clients);
+    set({ clients, lastUpdated: new Date() });
+  },
 
-  setWorkers: (workers) => 
-    set({ workers, lastUpdated: new Date() }),
+  setWorkers: (workers) => {
+    console.log('Store: Setting workers:', workers);
+    set({ workers, lastUpdated: new Date() });
+  },
 
-  setTasks: (tasks) => 
-    set({ tasks, lastUpdated: new Date() }),
+  setTasks: (tasks) => {
+    console.log('Store: Setting tasks:', tasks);
+    set({ tasks, lastUpdated: new Date() });
+  },
 
   setValidationErrors: (validationErrors) => 
     set({ validationErrors }),

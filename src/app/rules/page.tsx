@@ -361,7 +361,7 @@ export default function RulesPage() {
                   {editingRule ? 'Edit Rule' : 'Create New Rule'}
                 </h2>
                 <RuleForm
-                  initialRule={editingRule || undefined}
+                  {...(editingRule && { initialRule: editingRule as Partial<BusinessRule> })}
                   onSubmit={editingRule ? handleUpdateRule : handleCreateRule}
                   onCancel={() => {
                     setShowCreateForm(false);

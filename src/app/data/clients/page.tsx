@@ -3,6 +3,10 @@ import React, { useState } from 'react';
 import { useDataStore } from '@/store';
 import { useValidationStore } from '@/store/validation-slice';
 import { NaturalLanguageSearch } from '@/components/ai/natural-language-search';
+import { NaturalLanguageModifier } from '@/components/ai/natural-language-modifier';
+import { AICorrections } from '@/components/ai/ai-corrections';
+import { AIRecommendations } from '@/components/ai/ai-recommendations';
+import { Client } from '@/types';
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,48 +14,63 @@ export default function ClientsPage() {
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [nlFilter, setNlFilter] = useState<string>("");
+  const [showAIFeatures, setShowAIFeatures] = useState(false);
 
   const clients = useDataStore(s => s.clients);
   const setClients = useDataStore(s => s.setClients);
   const runValidation = useValidationStore(s => s.runValidation);
   const validationErrorsList = useValidationStore(s => s.errors);
 
+  // Debug logging
+  console.log('ClientsPage: Current clients data:', clients);
+  console.log('ClientsPage: Number of clients:', clients.length);
+
   // Advanced parser for natural language queries
-  function filterClientsByQuery(clients: any[], query: string) {
+  function filterClientsByQuery(clients: Client[], query: string): Client[] {
     if (!query.trim()) return clients;
     let filtered = clients;
+    
     // Numeric comparison: "priority > 3" or "PriorityLevel >= 2"
     const numComp = query.match(/priority(level)?\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
     if (numComp) {
       const op = numComp[2] || '=';
-      const level = parseInt(numComp[3], 10);
-      filtered = filtered.filter(c => {
-        if (op === '>' || op === 'gt') return c.PriorityLevel > level;
-        if (op === '<' || op === 'lt') return c.PriorityLevel < level;
-        if (op === '>=' || op === 'ge') return c.PriorityLevel >= level;
-        if (op === '<=' || op === 'le') return c.PriorityLevel <= level;
-        return c.PriorityLevel === level;
-      });
+      const levelStr = numComp[3];
+      if (levelStr) {
+        const level = parseInt(levelStr, 10);
+        filtered = filtered.filter(c => {
+          if (op === '>' || op === 'gt') return c.PriorityLevel > level;
+          if (op === '<' || op === 'lt') return c.PriorityLevel < level;
+          if (op === '>=' || op === 'ge') return c.PriorityLevel >= level;
+          if (op === '<=' || op === 'le') return c.PriorityLevel <= level;
+          return c.PriorityLevel === level;
+        });
+      }
     }
+    
     // Array inclusion: "with task T1" or "task T1"
     const taskMatch = query.match(/task\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
     if (taskMatch) {
       const taskId = taskMatch[3];
-      filtered = filtered.filter(c => c.RequestedTaskIDs && c.RequestedTaskIDs.includes(taskId));
+      if (taskId) {
+        filtered = filtered.filter(c => c.RequestedTaskIDs && c.RequestedTaskIDs.includes(taskId));
+      }
     }
+    
     // Logical AND: "priority > 3 and with task T1"
     if (/ and /i.test(query)) {
       const parts = query.split(/ and /i);
       return parts.reduce((acc, part) => filterClientsByQuery(acc, part), clients);
     }
+    
     // Logical OR: "priority 5 or priority 4"
     if (/ or /i.test(query)) {
       const parts = query.split(/ or /i);
-      const sets = parts.map(part => filterClientsByQuery(clients, part));
+      const sets: Client[][] = parts.map(part => filterClientsByQuery(clients, part));
       // Union of all sets
       const union = sets.flat().filter((v, i, arr) => arr.findIndex(x => x.ClientID === v.ClientID) === i);
       return union;
     }
+    
     return filtered;
   }
 
@@ -63,8 +82,8 @@ export default function ClientsPage() {
   });
 
   const sortedClients = [...filteredClients].sort((a, b) => {
-    let aValue = a[sortBy];
-    let bValue = b[sortBy];
+    let aValue: any = a[sortBy as keyof Client];
+    let bValue: any = b[sortBy as keyof Client];
     
     if (sortBy === 'name') {
       aValue = a.ClientName || '';
@@ -95,8 +114,8 @@ export default function ClientsPage() {
   const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
     const updated = [...clients];
     const client = { ...updated[rowIndex] };
-    client[columnId] = value;
-    updated[rowIndex] = client;
+    (client as any)[columnId] = value;
+    updated[rowIndex] = client as Client;
     setClients(updated);
     runValidation();
   };
@@ -110,146 +129,145 @@ export default function ClientsPage() {
     }
   });
 
+  const handleApplyCorrection = (errorId: string, correction: any) => {
+    // Apply AI correction logic here
+    console.log('Applying correction:', errorId, correction);
+    runValidation();
+  };
+
+  const handleApplyBatchCorrections = (corrections: Array<{ errorId: string; correction: any }>) => {
+    // Apply batch corrections logic here
+    console.log('Applying batch corrections:', corrections);
+    runValidation();
+  };
+
+  const handleApplyModification = (modifiedData: any[]) => {
+    setClients(modifiedData);
+    runValidation();
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Clients Management
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            View and manage client information with real-time validation and AI-powered insights
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Clients Management</h1>
+          <p className="mt-2 text-gray-600">
+            Manage client information, priorities, and task requests.
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
-                <p className="text-sm text-gray-600">Total Clients</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">👥</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-red-600">
-                  {clients.filter(c => c.PriorityLevel >= 4).length}
-                </p>
-                <p className="text-sm text-gray-600">Critical Priority</p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🔴</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-green-600">
-                  {clients.filter(c => c.PriorityLevel <= 2).length}
-                </p>
-                <p className="text-sm text-gray-600">Low Priority</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🟢</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-purple-600">
-                  {clients.filter(c => c.RequestedTaskIDs && c.RequestedTaskIDs.length > 0).length}
-                </p>
-                <p className="text-sm text-gray-600">With Tasks</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📋</span>
-              </div>
-            </div>
-          </div>
+        {/* AI Features Toggle */}
+        <div className="mb-6">
+          <button
+            onClick={() => setShowAIFeatures(!showAIFeatures)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {showAIFeatures ? 'Hide AI Features' : 'Show AI Features'}
+          </button>
         </div>
 
-        {/* Controls */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search clients..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <svg className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+        {/* AI Features Section */}
+        {showAIFeatures && (
+          <div className="mb-8 space-y-6">
+            {/* Natural Language Modifier */}
+            <NaturalLanguageModifier
+              entityType="clients"
+              data={clients}
+              onApplyModification={handleApplyModification}
+            />
 
-              {/* Priority Filter */}
+            {/* AI Corrections */}
+            <AICorrections
+              errors={validationErrorsList.filter(e => e.affectedEntity === 'client')}
+              onApplyCorrection={handleApplyCorrection}
+              onApplyBatchCorrections={handleApplyBatchCorrections}
+              onDismiss={() => {}}
+            />
+
+            {/* AI Recommendations */}
+            <AIRecommendations
+              clients={clients}
+              workers={[]}
+              tasks={[]}
+              onApplyRecommendation={(recommendation) => {
+                console.log('Applying recommendation:', recommendation);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search clients..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
               <select
                 value={filterPriority}
                 onChange={(e) => setFilterPriority(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Priorities</option>
-                <option value="1">Low Priority</option>
-                <option value="2">Medium Priority</option>
-                <option value="3">High Priority</option>
-                <option value="4">Critical Priority</option>
+                <option value="1">Low (1)</option>
+                <option value="2">Medium (2)</option>
+                <option value="3">High (3)</option>
+                <option value="4">Critical (4)</option>
+                <option value="5">Emergency (5)</option>
               </select>
-
-              {/* Sort */}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="name">Sort by Name</option>
-                <option value="id">Sort by ID</option>
-                <option value="priority">Sort by Priority</option>
+                <option value="name">Name</option>
+                <option value="ClientID">ID</option>
+                <option value="PriorityLevel">Priority</option>
+                <option value="GroupTag">Group</option>
               </select>
-
-              <button
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {sortOrder === 'asc' ? '↑' : '↓'}
-              </button>
             </div>
-
-            {/* Actions */}
-            <div className="flex space-x-2">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Export
-              </button>
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                Add Client
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
             </div>
           </div>
         </div>
 
+        {/* Natural Language Search */}
+        <div className="mb-6">
+          <NaturalLanguageSearch onSearch={setNlFilter} placeholder="e.g. Priority 5, with task T1" />
+        </div>
+
         {/* Data Table */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
+                    Client ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
@@ -258,7 +276,7 @@ export default function ClientsPage() {
                     Requested Tasks
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Group
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -267,34 +285,23 @@ export default function ClientsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedClients.map((client, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <span className="text-lg">👥</span>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {client.ClientName || 'Unnamed Client'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {client.ClientID || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
+                  <tr key={client.ClientID} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {client.ClientID}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {client.ClientName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(client.PriorityLevel || 1)}`}>
-                        {getPriorityLabel(client.PriorityLevel || 1)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(client.PriorityLevel)}`}>
+                        {getPriorityLabel(client.PriorityLevel)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {client.RequestedTaskIDs ? client.RequestedTaskIDs.length : 0} tasks
+                      {Array.isArray(client.RequestedTaskIDs) ? client.RequestedTaskIDs.join(', ') : client.RequestedTaskIDs}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Active
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {client.GroupTag}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -328,8 +335,6 @@ export default function ClientsPage() {
             </div>
           )}
         </div>
-
-        <NaturalLanguageSearch onSearch={setNlFilter} placeholder="e.g. Priority 5, with task T1" />
       </div>
     </div>
   );

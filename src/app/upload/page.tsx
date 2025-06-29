@@ -53,6 +53,8 @@ export default function UploadPage() {
     // Process each file
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      if (!file) continue; // Skip if file is undefined
+      
       const fileIndex = newFiles.findIndex(f => f.name === file.name);
       
       try {

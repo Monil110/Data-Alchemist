@@ -30,7 +30,7 @@ const nextConfig = {
     ];
   },
   env: {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    GOOGLE_AI_API_KEY: process.env.GOOGLE_AI_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   },
   images: {

@@ -144,10 +144,6 @@ export default function RuleForm({
       const rule: BusinessRule = {
         id: initialRule?.id || `rule_${Date.now()}`,
         type: ruleType,
-        name: formData.name!,
-        description: formData.description!,
-        enabled: formData.enabled!,
-        priority: formData.priority!,
         createdAt: initialRule?.createdAt || new Date(),
         updatedAt: new Date(),
         ...formData
@@ -201,7 +197,6 @@ export default function RuleForm({
             </div>
           </div>
         );
-
       case 'slot-restriction':
         return (
           <div className="space-y-4">
@@ -267,7 +262,6 @@ export default function RuleForm({
             </div>
           </div>
         );
-
       case 'load-limit':
         return (
           <div className="space-y-4">
@@ -324,7 +318,6 @@ export default function RuleForm({
             </div>
           </div>
         );
-
       case 'phase-window':
         return (
           <div className="space-y-4">
@@ -369,7 +362,6 @@ export default function RuleForm({
             </div>
           </div>
         );
-
       case 'pattern-match':
         return (
           <div className="space-y-4">
@@ -415,7 +407,6 @@ export default function RuleForm({
             </div>
           </div>
         );
-
       default:
         return <div>Select a rule type to configure</div>;
     }

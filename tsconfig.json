@@ -27,7 +27,7 @@
       "@/store/*": ["./src/store/*"],
       "@/styles/*": ["./src/styles/*"],
       "@/app/*": ["./src/app/*"],
-      "@/utils/*": ["./src/lib/utils/*"],
+      "@/utils/*": ["./src/utils/*"],
       "@/hooks/*": ["./src/lib/hooks/*"],
       "@/validators/*": ["./src/lib/validators/*"],
       "@/parsers/*": ["./src/lib/parsers/*"],

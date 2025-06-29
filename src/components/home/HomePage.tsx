@@ -20,6 +20,7 @@ interface RecentActivity {
 }
 
 const HomePage = () => {
+  const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState<DataStats>({
     clients: 0,
     workers: 0,
@@ -54,6 +55,7 @@ const HomePage = () => {
 
   // Simulate loading stats from your data store
   useEffect(() => {
+    setMounted(true);
     const loadStats = async () => {
       // In real implementation, fetch from your data store
       // const data = await fetchDataStats();
@@ -350,11 +352,11 @@ const HomePage = () => {
                       <p className="text-sm font-medium text-gray-900">{activity.message}</p>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {activity.timestamp.toLocaleTimeString('en-US', { 
+                      {mounted ? activity.timestamp.toLocaleTimeString('en-US', { 
                         hour: 'numeric', 
                         minute: '2-digit', 
                         hour12: true 
-                      })}
+                      }) : '--:--'}
                     </p>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDataStore } from '@/store';
 import { DataGrid } from '@/components/data-grid/data-grid';
 import { Worker } from '@/types/worker';
@@ -21,6 +21,7 @@ const workerColumns: ColumnDef<Worker, any>[] = [
 export default function WorkersPage() {
   const workers = useDataStore(s => s.workers);
   const setWorkers = useDataStore(s => s.setWorkers);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const runValidation = useValidationStore(s => s.runValidation);
   const validationErrorsList = useValidationStore(s => s.errors);
@@ -30,13 +31,16 @@ export default function WorkersPage() {
   }, [workers, runValidation]);
 
   // Map validation errors to cell keys
-  const validationErrors: Record<string, string> = {};
-  validationErrorsList.forEach(err => {
-    const rowIndex = workers.findIndex(w => w.WorkerID === err.entityId);
-    if (rowIndex !== -1 && err.field) {
-      validationErrors[`${rowIndex}-${err.field}`] = err.message;
-    }
-  });
+  const mappedValidationErrors = useMemo(() => {
+    const errors: Record<string, string> = {};
+    validationErrorsList.forEach(err => {
+      const rowIndex = workers.findIndex(w => w.WorkerID === err.entityId);
+      if (rowIndex !== -1 && err.field) {
+        errors[`${rowIndex}-${err.field}`] = err.message;
+      }
+    });
+    return errors;
+  }, [validationErrorsList, workers]);
 
   const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
     const updated = [...workers];
@@ -45,17 +49,25 @@ export default function WorkersPage() {
     if (columnId === 'MaxLoadPerPhase') {
       const num = Number(value);
       if (isNaN(num) || num < 1) {
-        validationErrors[`${rowIndex}-${columnId}`] = 'Must be a positive number';
-        worker[columnId] = num;
+        setValidationErrors(prev => ({ ...prev, [`${rowIndex}-${columnId}`]: 'Must be a positive number' }));
+        return;
       } else {
-        delete validationErrors[`${rowIndex}-${columnId}`];
-        worker[columnId] = num;
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[`${rowIndex}-${columnId}`];
+          return newErrors;
+        });
+        (worker as any)[columnId] = num;
       }
     } else {
-      worker[columnId] = value;
-      delete validationErrors[`${rowIndex}-${columnId}`];
+      (worker as any)[columnId] = value;
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`${rowIndex}-${columnId}`];
+        return newErrors;
+      });
     }
-    updated[rowIndex] = worker;
+    updated[rowIndex] = worker as Worker;
     setWorkers(updated);
     runValidation();
   };
@@ -68,47 +80,69 @@ export default function WorkersPage() {
   };
 
   // Advanced parser for natural language queries
-  function filterWorkersByQuery(workers: any[], query: string) {
+  function filterWorkersByQuery(workers: Worker[], query: string): Worker[] {
     if (!query.trim()) return workers;
     let filtered = workers;
-    // Numeric comparison: "capacity > 80" or "Capacity >= 50"
-    const capacityMatch = query.match(/capacity\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
-    if (capacityMatch) {
-      const op = capacityMatch[1] || '=';
-      const capacity = parseInt(capacityMatch[2], 10);
-      filtered = filtered.filter(w => {
-        if (op === '>' || op === 'gt') return w.Capacity > capacity;
-        if (op === '<' || op === 'lt') return w.Capacity < capacity;
-        if (op === '>=' || op === 'ge') return w.Capacity >= capacity;
-        if (op === '<=' || op === 'le') return w.Capacity <= capacity;
-        return w.Capacity === capacity;
-      });
+    
+    // Numeric comparison: "maxload > 80" or "MaxLoadPerPhase >= 50"
+    const maxLoadMatch = query.match(/maxload(perphase)?\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
+    if (maxLoadMatch) {
+      const op = maxLoadMatch[2] || '=';
+      const maxLoadStr = maxLoadMatch[3];
+      if (maxLoadStr) {
+        const maxLoad = parseInt(maxLoadStr, 10);
+        filtered = filtered.filter(w => {
+          if (op === '>' || op === 'gt') return w.MaxLoadPerPhase > maxLoad;
+          if (op === '<' || op === 'lt') return w.MaxLoadPerPhase < maxLoad;
+          if (op === '>=' || op === 'ge') return w.MaxLoadPerPhase >= maxLoad;
+          if (op === '<=' || op === 'le') return w.MaxLoadPerPhase <= maxLoad;
+          return w.MaxLoadPerPhase === maxLoad;
+        });
+      }
     }
+    
     // Array inclusion: "with skill S1" or "skill S1"
     const skillMatch = query.match(/skill\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
     if (skillMatch) {
       const skillId = skillMatch[3];
-      filtered = filtered.filter(w => w.SkillIDs && w.SkillIDs.includes(skillId));
+      if (skillId) {
+        filtered = filtered.filter(w => w.Skills && w.Skills.includes(skillId));
+      }
     }
-    // Status filter: "available" or "status available"
-    const statusMatch = query.match(/status\s*(=|is|:)?\s*(\w+)/i);
-    if (statusMatch) {
-      const status = statusMatch[2];
-      filtered = filtered.filter(w => w.Status && w.Status.toLowerCase() === status.toLowerCase());
+    
+    // Group filter: "group A" or "worker group A"
+    const groupMatch = query.match(/group\s*(=|is|:)?\s*([\w-]+)/i);
+    if (groupMatch) {
+      const group = groupMatch[2];
+      if (group) {
+        filtered = filtered.filter(w => w.WorkerGroup && w.WorkerGroup.toLowerCase() === group.toLowerCase());
+      }
     }
-    // Logical AND: "capacity > 80 and with skill S1"
+    
+    // Qualification filter: "qualification high" or "level high"
+    const qualMatch = query.match(/qualification(level)?\s*(=|is|:)?\s*([\w-]+)/i);
+    if (qualMatch) {
+      const qual = qualMatch[3];
+      if (qual) {
+        filtered = filtered.filter(w => w.QualificationLevel && w.QualificationLevel.toLowerCase() === qual.toLowerCase());
+      }
+    }
+    
+    // Logical AND: "maxload > 80 and with skill S1"
     if (/ and /i.test(query)) {
       const parts = query.split(/ and /i);
       return parts.reduce((acc, part) => filterWorkersByQuery(acc, part), workers);
     }
-    // Logical OR: "capacity 100 or capacity 90"
+    
+    // Logical OR: "maxload 100 or maxload 90"
     if (/ or /i.test(query)) {
       const parts = query.split(/ or /i);
-      const sets = parts.map(part => filterWorkersByQuery(workers, part));
+      const sets: Worker[][] = parts.map(part => filterWorkersByQuery(workers, part));
       // Union of all sets
       const union = sets.flat().filter((v, i, arr) => arr.findIndex(x => x.WorkerID === v.WorkerID) === i);
       return union;
     }
+    
     return filtered;
   }
 
@@ -128,7 +162,7 @@ export default function WorkersPage() {
         data={workers}
         columns={workerColumns}
         onCellEdit={handleCellEdit}
-        validationErrors={validationErrors}
+        validationErrors={{ ...validationErrors, ...mappedValidationErrors }}
         onSelectionChange={setSelectedRows}
       />
     </div>

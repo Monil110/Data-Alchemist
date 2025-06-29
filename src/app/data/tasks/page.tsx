@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDataStore } from '@/store';
 import { DataGrid } from '@/components/data-grid/data-grid';
 import { Task } from '@/types/task';
@@ -31,12 +31,16 @@ export default function TasksPage() {
   }, [tasks, runValidation]);
 
   // Map validation errors to cell keys
-  validationErrorsList.forEach(err => {
-    const rowIndex = tasks.findIndex(t => t.TaskID === err.entityId);
-    if (rowIndex !== -1 && err.field) {
-      validationErrors[`${rowIndex}-${err.field}`] = err.message;
-    }
-  });
+  const mappedValidationErrors = useMemo(() => {
+    const errors: Record<string, string> = {};
+    validationErrorsList.forEach(err => {
+      const rowIndex = tasks.findIndex(t => t.TaskID === err.entityId);
+      if (rowIndex !== -1 && err.field) {
+        errors[`${rowIndex}-${err.field}`] = err.message;
+      }
+    });
+    return errors;
+  }, [validationErrorsList, tasks]);
 
   const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
     const updated = [...tasks];
@@ -46,17 +50,24 @@ export default function TasksPage() {
       const num = Number(value);
       if (isNaN(num) || num < 1) {
         setValidationErrors(prev => ({ ...prev, [`${rowIndex}-${columnId}`]: 'Must be a positive number' }));
+        return;
       } else {
-        delete validationErrors[`${rowIndex}-${columnId}`];
-        setValidationErrors({ ...validationErrors });
-        task[columnId] = num;
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[`${rowIndex}-${columnId}`];
+          return newErrors;
+        });
+        (task as any)[columnId] = num;
       }
     } else {
-      task[columnId] = value;
-      delete validationErrors[`${rowIndex}-${columnId}`];
-      setValidationErrors({ ...validationErrors });
+      (task as any)[columnId] = value;
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`${rowIndex}-${columnId}`];
+        return newErrors;
+      });
     }
-    updated[rowIndex] = task;
+    updated[rowIndex] = task as Task;
     setTasks(updated);
     runValidation();
   };
@@ -69,53 +80,61 @@ export default function TasksPage() {
   };
 
   // Advanced parser for natural language queries
-  function filterTasksByQuery(tasks: any[], query: string) {
+  function filterTasksByQuery(tasks: Task[], query: string): Task[] {
     if (!query.trim()) return tasks;
     let filtered = tasks;
+    
     // Numeric comparison: "duration > 120" or "Duration >= 60"
     const durationMatch = query.match(/duration\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
     if (durationMatch) {
       const op = durationMatch[1] || '=';
-      const duration = parseInt(durationMatch[2], 10);
-      filtered = filtered.filter(t => {
-        if (op === '>' || op === 'gt') return t.Duration > duration;
-        if (op === '<' || op === 'lt') return t.Duration < duration;
-        if (op === '>=' || op === 'ge') return t.Duration >= duration;
-        if (op === '<=' || op === 'le') return t.Duration <= duration;
-        return t.Duration === duration;
-      });
+      const durationStr = durationMatch[2];
+      if (durationStr) {
+        const duration = parseInt(durationStr, 10);
+        filtered = filtered.filter(t => {
+          if (op === '>' || op === 'gt') return t.Duration > duration;
+          if (op === '<' || op === 'lt') return t.Duration < duration;
+          if (op === '>=' || op === 'ge') return t.Duration >= duration;
+          if (op === '<=' || op === 'le') return t.Duration <= duration;
+          return t.Duration === duration;
+        });
+      }
     }
+    
     // Array inclusion: "with skill S1" or "skill S1"
     const skillMatch = query.match(/skill\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
     if (skillMatch) {
       const skillId = skillMatch[3];
-      filtered = filtered.filter(t => t.RequiredSkillIDs && t.RequiredSkillIDs.includes(skillId));
+      if (skillId) {
+        filtered = filtered.filter(t => t.RequiredSkills && t.RequiredSkills.includes(skillId));
+      }
     }
-    // Status filter: "active" or "status active"
-    const statusMatch = query.match(/status\s*(=|is|:)?\s*(\w+)/i);
-    if (statusMatch) {
-      const status = statusMatch[2];
-      filtered = filtered.filter(t => t.Status && t.Status.toLowerCase() === status.toLowerCase());
-    }
+    
     // Phase filter: "phase 1" or "phase 1"
     const phaseMatch = query.match(/phase\s*(=|is|:)?\s*(\d+)/i);
     if (phaseMatch) {
-      const phase = parseInt(phaseMatch[2], 10);
-      filtered = filtered.filter(t => t.Phase === phase);
+      const phaseStr = phaseMatch[2];
+      if (phaseStr) {
+        const phase = parseInt(phaseStr, 10);
+        filtered = filtered.filter(t => t.PreferredPhases && t.PreferredPhases.includes(phase));
+      }
     }
+    
     // Logical AND: "duration > 120 and with skill S1"
     if (/ and /i.test(query)) {
       const parts = query.split(/ and /i);
       return parts.reduce((acc, part) => filterTasksByQuery(acc, part), tasks);
     }
+    
     // Logical OR: "duration 180 or duration 240"
     if (/ or /i.test(query)) {
       const parts = query.split(/ or /i);
-      const sets = parts.map(part => filterTasksByQuery(tasks, part));
+      const sets: Task[][] = parts.map(part => filterTasksByQuery(tasks, part));
       // Union of all sets
       const union = sets.flat().filter((v, i, arr) => arr.findIndex(x => x.TaskID === v.TaskID) === i);
       return union;
     }
+    
     return filtered;
   }
 
@@ -135,7 +154,7 @@ export default function TasksPage() {
         data={tasks}
         columns={taskColumns}
         onCellEdit={handleCellEdit}
-        validationErrors={validationErrors}
+        validationErrors={{ ...validationErrors, ...mappedValidationErrors }}
         onSelectionChange={setSelectedRows}
       />
     </div>

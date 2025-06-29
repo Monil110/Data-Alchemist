@@ -1,0 +1,21 @@
+TaskID,TaskName,Category,Duration,RequiredSkills,PreferredPhases,MaxConcurrent
+T001,Frontend Development,development,3,"JavaScript,React",[1,2,3],2
+T002,Backend API Development,development,4,"Python,Node.js",[2,3,4],3
+T003,Database Design,infrastructure,2,"SQL,Database Design",[1,2],1
+T004,Machine Learning Model,ai,5,"Python,Machine Learning,TensorFlow",[3,4,5],1
+T005,Data Analysis Report,analysis,2,"Python,Data Analysis,SQL",[2,3],2
+T006,UI/UX Design,design,3,"CSS,HTML,JavaScript",[1,2,3],2
+T007,System Integration,infrastructure,4,"Python,JavaScript,Node.js",[3,4,5],1
+T008,Testing & QA,testing,2,"JavaScript,Python",[4,5],3
+T009,Performance Optimization,optimization,3,"JavaScript,Python,SQL",[2,3,4],1
+T010,Documentation,communication,1,"Communication,Planning",[1,2,3,4,5],5
+T011,Code Review,development,1,"JavaScript,Python,React",[1,2,3,4,5],4
+T012,Security Audit,security,3,"Python,JavaScript,Security",[2,3,4],1
+T013,Deployment Setup,devops,2,"Node.js,Python,Infrastructure",[4,5],2
+T014,User Training,communication,2,"Communication,Planning",[1,2,3],3
+T015,Maintenance & Support,support,1,"JavaScript,Python,SQL",[1,2,3,4,5],4
+T016,Circular Task A,development,2,"JavaScript",[1,2],1
+T017,Circular Task B,development,2,"Python",[2,3],1
+T018,Circular Task C,development,2,"React",[3,4],1
+T019,Invalid Duration,development,0,"JavaScript",[1,2],1
+T020,Missing Skills Task,development,2,"",[1,2],1

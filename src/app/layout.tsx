@@ -4,6 +4,7 @@ import './globals.css'
 import Header from '@/components/layout/header'
 import Footer from '@/components/layout/footer'
 import ErrorBoundary from '@/components/common/error-boundary'
+import { DataProvider } from '@/contexts/DataContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,13 +32,15 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-gray-50`}>
         <ErrorBoundary>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <DataProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </DataProvider>
         </ErrorBoundary>
       </body>
     </html>

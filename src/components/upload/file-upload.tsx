@@ -44,9 +44,19 @@ export const FileUpload: React.FC = () => {
       if (result.errors && result.errors.length > 0) {
         setErrors(prev => [...prev, ...result.errors.map(e => `${file.name}: ${e}`)]);
       }
-      if (entityType === 'clients' && result.clients) setClients(result.clients);
-      if (entityType === 'workers' && result.workers) setWorkers(result.workers);
-      if (entityType === 'tasks' && result.tasks) setTasks(result.tasks);
+      console.log(`Setting ${entityType} data:`, result[entityType]);
+      if (entityType === 'clients' && result.clients) {
+        console.log('Setting clients in store:', result.clients);
+        setClients(result.clients);
+      }
+      if (entityType === 'workers' && result.workers) {
+        console.log('Setting workers in store:', result.workers);
+        setWorkers(result.workers);
+      }
+      if (entityType === 'tasks' && result.tasks) {
+        console.log('Setting tasks in store:', result.tasks);
+        setTasks(result.tasks);
+      }
     }
   };
 
