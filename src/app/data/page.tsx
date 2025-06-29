@@ -2,6 +2,22 @@
 import React from 'react';
 import Link from 'next/link';
 import { useDataStore } from '@/store';
+import { validateAll } from '@/lib/validators/validation-engine';
+
+function convertToCSV(data: any[]): string {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const csvHeaders = headers.join(',');
+  const csvRows = data.map(row =>
+    headers.map(header => {
+      const value = row[header];
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+      return `"${String(value).replace(/"/g, '""')}"`;
+    }).join(',')
+  );
+  return [csvHeaders, ...csvRows].join('\n');
+}
 
 export default function DataOverviewPage() {
   const clients = useDataStore(s => s.clients);
@@ -43,6 +59,31 @@ export default function DataOverviewPage() {
 
   const totalRecords = clients.length + workers.length + tasks.length;
   const totalErrors = validationErrors.length;
+
+  // Export clients as CSV
+  const handleExportClients = () => {
+    const csv = convertToCSV(clients);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'clients.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Validate clients
+  const handleValidateClients = () => {
+    const errors = validateAll(clients, [], [], []);
+    if (errors.length === 0) {
+      alert('All clients are valid!');
+    } else {
+      alert(`Found ${errors.length} validation error(s) for clients. See console for details.`);
+      console.log('Client validation errors:', errors);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -143,10 +184,16 @@ export default function DataOverviewPage() {
                   </Link>
                   
                   <div className="flex space-x-2">
-                    <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                    <button
+                      className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                      onClick={entity.title === 'Clients' ? handleExportClients : undefined}
+                    >
                       Export
                     </button>
-                    <button className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                    <button
+                      className="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                      onClick={entity.title === 'Clients' ? handleValidateClients : undefined}
+                    >
                       Validate
                     </button>
                   </div>

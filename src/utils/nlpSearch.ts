@@ -35,9 +35,13 @@ function localSearch(
     }
 
     // Search by priority
-    if (queryLower.includes('priority') && client.PriorityLevel) {
+    if (queryLower.includes('priority')) {
       const priorityMatch = queryLower.match(/priority\s*(\d+)/i);
-      if (priorityMatch && priorityMatch[1] !== undefined && client.PriorityLevel === parseInt(priorityMatch[1])) {
+      if (
+        priorityMatch &&
+        priorityMatch[1] !== undefined &&
+        Number(client.PriorityLevel) === Number(priorityMatch[1])
+      ) {
         score += 70;
         match = `Priority Level: ${client.PriorityLevel}`;
         field = 'PriorityLevel';
