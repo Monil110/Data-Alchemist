@@ -67,9 +67,9 @@ export const ValidationPanel: React.FC = () => {
             <span style={{ marginRight: 8 }}>
               {err.severity === 'error' ? '❌' : '⚠️'}
             </span>
-            <span>{err.type}:</span> {err.message}
+            <span>{err.message}</span>
             <span style={{ marginLeft: 8, fontSize: 12, color: '#718096' }}>
-              [{err.affectedEntity} {err.entityId}]
+              [{err.affectedEntity} {err.id}]
             </span>
             <button
               style={{ marginLeft: 16, padding: '2px 8px', borderRadius: 4, border: 'none', background: '#3182ce', color: 'white', fontSize: 12, cursor: 'pointer' }}

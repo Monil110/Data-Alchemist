@@ -116,10 +116,10 @@ export default function NaturalLanguageSearch({ onSearch, placeholder }: Natural
         <div className="text-sm text-gray-500">
           <p>Examples:</p>
           <ul className="list-disc list-inside space-y-1 mt-2">
-            <li>"Show clients with priority 5"</li>
-            <li>"Workers with skill 'JavaScript'"</li>
-            <li>"Tasks longer than 3 hours"</li>
-            <li>"High priority tasks for client C1"</li>
+            <li>&quot;Show clients with priority 5&quot;</li>
+            <li>&quot;Workers with skill &apos;JavaScript&apos;&quot;</li>
+            <li>&quot;Tasks longer than 3 hours&quot;</li>
+            <li>&quot;High priority tasks for client C1&quot;</li>
           </ul>
         </div>
 

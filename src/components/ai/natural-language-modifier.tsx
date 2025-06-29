@@ -206,12 +206,18 @@ export const NaturalLanguageModifier: React.FC<NaturalLanguageModifierProps> = (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <h4 className="text-sm font-medium text-gray-900 mb-2">Example Queries:</h4>
           <div className="space-y-1 text-xs text-gray-600">
-            <p>• "Change all priority 1 clients to priority 2"</p>
-            <p>• "Set MaxLoadPerPhase to 3 for all workers"</p>
-            <p>• "Increase duration by 1 for all tasks"</p>
-            <p>• "Add skill 'JavaScript' to all workers"</p>
-            <p>• "Set PreferredPhases to [1,2,3] for tasks with duration &gt; 2"</p>
+            <p>• &quot;Change all priority 1 clients to priority 2&quot;</p>
+            <p>• &quot;Set MaxLoadPerPhase to 3 for all workers&quot;</p>
+            <p>• &quot;Increase duration by 1 for all tasks&quot;</p>
+            <p>• &quot;Add skill &apos;JavaScript&apos; to all workers&quot;</p>
+            <p>• &quot;Set PreferredPhases to [1,2,3] for tasks with duration &gt; 2&quot;</p>
           </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Try queries like &quot;make all priority 5 clients high priority&quot; or &quot;change all workers in group A to group B&quot;
+          </p>
+          <p className="text-sm text-gray-600 mb-4">
+            You can also use natural language to modify data: &quot;set all tasks with duration &gt; 3 to duration 2&quot;
+          </p>
         </div>
       </div>
     </div>

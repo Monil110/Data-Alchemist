@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { BusinessRule, RuleType } from '@/types';
 
 // In-memory storage for rules (in a real app, this would be a database)
-let rules: BusinessRule[] = [
+const rules: BusinessRule[] = [
   {
     id: 'rule-001',
     type: RuleType.CO_RUN,

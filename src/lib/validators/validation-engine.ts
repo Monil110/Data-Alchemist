@@ -16,11 +16,12 @@ export function validateAll(
   clients.forEach((client, index) => {
     if (!client.ClientID || !client.ClientName) {
       errors.push({
-        type: 'MissingRequiredColumns',
+        id: `missing_columns_client_${Date.now()}`,
+        entityType: 'client',
         severity: 'error',
         message: `Client ${index + 1} is missing required ClientID or ClientName`,
         affectedEntity: 'client',
-        entityId: client.ClientID || `client-${index}`,
+        suggestions: ['Add the missing columns: ClientID, ClientName']
       });
     }
   });
@@ -28,11 +29,12 @@ export function validateAll(
   workers.forEach((worker, index) => {
     if (!worker.WorkerID || !worker.WorkerName) {
       errors.push({
-        type: 'MissingRequiredColumns',
+        id: `missing_columns_worker_${Date.now()}`,
+        entityType: 'worker',
         severity: 'error',
         message: `Worker ${index + 1} is missing required WorkerID or WorkerName`,
         affectedEntity: 'worker',
-        entityId: worker.WorkerID || `worker-${index}`,
+        suggestions: ['Add the missing columns: WorkerID, WorkerName']
       });
     }
   });
@@ -40,11 +42,12 @@ export function validateAll(
   tasks.forEach((task, index) => {
     if (!task.TaskID || !task.TaskName) {
       errors.push({
-        type: 'MissingRequiredColumns',
+        id: `missing_columns_task_${Date.now()}`,
+        entityType: 'task',
         severity: 'error',
         message: `Task ${index + 1} is missing required TaskID or TaskName`,
         affectedEntity: 'task',
-        entityId: task.TaskID || `task-${index}`,
+        suggestions: ['Add the missing columns: TaskID, TaskName']
       });
     }
   });
@@ -55,11 +58,13 @@ export function validateAll(
     if (client.ClientID) {
       if (clientIds.has(client.ClientID)) {
         errors.push({
-          type: 'DuplicateID',
+          id: `duplicate_id_client_${client.ClientID}`,
+          entityType: 'client',
           severity: 'error',
           message: `Duplicate ClientID found: ${client.ClientID}`,
-          affectedEntity: 'client',
-          entityId: client.ClientID,
+          field: 'ClientID',
+          value: client.ClientID,
+          affectedEntity: 'client'
         });
       } else {
         clientIds.add(client.ClientID);
@@ -72,11 +77,13 @@ export function validateAll(
     if (worker.WorkerID) {
       if (workerIds.has(worker.WorkerID)) {
         errors.push({
-          type: 'DuplicateID',
+          id: `duplicate_id_worker_${worker.WorkerID}`,
+          entityType: 'worker',
           severity: 'error',
           message: `Duplicate WorkerID found: ${worker.WorkerID}`,
-          affectedEntity: 'worker',
-          entityId: worker.WorkerID,
+          field: 'WorkerID',
+          value: worker.WorkerID,
+          affectedEntity: 'worker'
         });
       } else {
         workerIds.add(worker.WorkerID);
@@ -89,11 +96,13 @@ export function validateAll(
     if (task.TaskID) {
       if (taskIds.has(task.TaskID)) {
         errors.push({
-          type: 'DuplicateID',
+          id: `duplicate_id_task_${task.TaskID}`,
+          entityType: 'task',
           severity: 'error',
           message: `Duplicate TaskID found: ${task.TaskID}`,
-          affectedEntity: 'task',
-          entityId: task.TaskID,
+          field: 'TaskID',
+          value: task.TaskID,
+          affectedEntity: 'task'
         });
       } else {
         taskIds.add(task.TaskID);
@@ -105,11 +114,13 @@ export function validateAll(
   clients.forEach(client => {
     if (client.PriorityLevel && (client.PriorityLevel < 1 || client.PriorityLevel > 5)) {
       errors.push({
-        type: 'OutOfRangeValue',
+        id: `out_of_range_value_client_${client.ClientID}`,
+        entityType: 'client',
         severity: 'error',
         message: `Client ${client.ClientID} PriorityLevel must be between 1-5, got ${client.PriorityLevel}`,
-        affectedEntity: 'client',
-        entityId: client.ClientID,
+        field: 'PriorityLevel',
+        value: client.PriorityLevel,
+        affectedEntity: 'client'
       });
     }
   });
@@ -117,11 +128,13 @@ export function validateAll(
   tasks.forEach(task => {
     if (task.Duration && task.Duration < 1) {
       errors.push({
-        type: 'OutOfRangeValue',
+        id: `out_of_range_value_task_${task.TaskID}`,
+        entityType: 'task',
         severity: 'error',
         message: `Task ${task.TaskID} Duration must be at least 1, got ${task.Duration}`,
-        affectedEntity: 'task',
-        entityId: task.TaskID,
+        field: 'Duration',
+        value: task.Duration,
+        affectedEntity: 'task'
       });
     }
   });
@@ -132,11 +145,13 @@ export function validateAll(
       client.RequestedTaskIDs.forEach(taskId => {
         if (!tasks.some(task => task.TaskID === taskId)) {
           errors.push({
-            type: 'UnknownReference',
+            id: `unknown_reference_client_${client.ClientID}_${taskId}`,
+            entityType: 'client',
             severity: 'error',
             message: `Client ${client.ClientID} references unknown TaskID: ${taskId}`,
-            affectedEntity: 'client',
-            entityId: client.ClientID,
+            field: 'RequestedTaskIDs',
+            value: taskId,
+            affectedEntity: 'client'
           });
         }
       });
@@ -156,11 +171,13 @@ export function validateAll(
       task.RequiredSkills.forEach(skill => {
         if (!allWorkerSkills.has(skill)) {
           errors.push({
-            type: 'SkillCoverage',
+            id: `skill_coverage_task_${task.TaskID}_${skill}`,
+            entityType: 'task',
             severity: 'warning',
             message: `Required skill '${skill}' for Task ${task.TaskID} not covered by any worker`,
-            affectedEntity: 'task',
-            entityId: task.TaskID,
+            field: 'RequiredSkills',
+            value: skill,
+            affectedEntity: 'task'
           });
         }
       });
@@ -173,22 +190,26 @@ export function validateAll(
       worker.AvailableSlots.forEach((slot, idx) => {
         if (typeof slot !== 'number' || isNaN(slot)) {
           errors.push({
-            type: 'MalformedList',
+            id: `malformed_list_worker_${worker.WorkerID}_${idx}`,
+            entityType: 'worker',
             severity: 'error',
             message: `Worker ${worker.WorkerID} has non-numeric value in AvailableSlots at index ${idx}`,
-            affectedEntity: 'worker',
-            entityId: worker.WorkerID,
+            field: `AvailableSlots[${idx}]`,
+            value: slot,
+            affectedEntity: 'worker'
           });
         }
       });
     }
     if (worker.Skills && !Array.isArray(worker.Skills)) {
       errors.push({
-        type: 'MalformedList',
+        id: `malformed_list_worker_${worker.WorkerID}_skills`,
+        entityType: 'worker',
         severity: 'error',
         message: `Worker ${worker.WorkerID} has malformed Skills list`,
-        affectedEntity: 'worker',
-        entityId: worker.WorkerID,
+        field: 'Skills',
+        value: worker.Skills,
+        affectedEntity: 'worker'
       });
     }
   });
@@ -200,11 +221,13 @@ export function validateAll(
         JSON.parse(client.AttributesJSON);
       } catch {
         errors.push({
-          type: 'BrokenJSON',
+          id: `broken_json_client_${client.ClientID}`,
+          entityType: 'client',
           severity: 'error',
           message: `Client ${client.ClientID} has invalid JSON in AttributesJSON`,
-          affectedEntity: 'client',
-          entityId: client.ClientID,
+          field: 'AttributesJSON',
+          value: client.AttributesJSON,
+          affectedEntity: 'client'
         });
       }
     }
@@ -218,11 +241,13 @@ export function validateAll(
       worker.AvailableSlots.length < worker.MaxLoadPerPhase
     ) {
       errors.push({
-        type: 'OverloadedWorker',
+        id: `overloaded_worker_${worker.WorkerID}`,
+        entityType: 'worker',
         severity: 'error',
         message: `Worker ${worker.WorkerID} has MaxLoadPerPhase (${worker.MaxLoadPerPhase}) greater than AvailableSlots (${worker.AvailableSlots.length})`,
-        affectedEntity: 'worker',
-        entityId: worker.WorkerID,
+        field: 'MaxLoadPerPhase',
+        value: worker.MaxLoadPerPhase,
+        affectedEntity: 'worker'
       });
     }
   });
@@ -249,11 +274,15 @@ export function validateAll(
     for (const taskId of group) {
       if (hasCycle(taskId, group)) {
         errors.push({
-          type: 'CircularCoRunGroup',
+          id: `circular_co_run_group_${taskId}`,
+          entityType: 'Task',
           severity: 'error',
           message: `Circular co-run group detected involving TaskID ${taskId}`,
+          field: 'group',
+          value: group.join(', '),
           affectedEntity: 'Task',
-          entityId: taskId,
+          ruleId: rule.id,
+          suggestions: []
         });
         break;
       }
@@ -270,11 +299,15 @@ export function validateAll(
       const preferred = task.PreferredPhases as number[];
       if (!preferred.every(phase => allowed.includes(phase))) {
         errors.push({
-          type: 'ConflictingPhaseWindow',
+          id: `conflicting_phase_window_${task.TaskID}`,
+          entityType: 'Task',
           severity: 'error',
           message: `Task ${task.TaskID} preferred phases conflict with phase-window rule`,
+          field: 'PreferredPhases',
+          value: preferred.join(', '),
           affectedEntity: 'Task',
-          entityId: task.TaskID,
+          ruleId: rule.id,
+          suggestions: []
         });
       }
     }
@@ -301,11 +334,15 @@ export function validateAll(
     const phase = Number(phaseStr);
     if (phaseDurations[phase] > (phaseSlots[phase] || 0)) {
       errors.push({
-        type: 'PhaseSlotSaturation',
+        id: `phase_slot_saturation_${phase}`,
+        entityType: 'Phase',
         severity: 'warning',
         message: `Phase ${phase} is oversubscribed: total task durations (${phaseDurations[phase]}) > total worker slots (${phaseSlots[phase] || 0})`,
+        field: 'AvailableSlots',
+        value: undefined,
         affectedEntity: 'Phase',
-        entityId: String(phase),
+        ruleId: undefined,
+        suggestions: []
       });
     }
   });
@@ -317,11 +354,15 @@ export function validateAll(
     (task.RequiredSkills || []).forEach(skill => {
       if (!allSkills.has(skill)) {
         errors.push({
-          type: 'SkillCoverage',
+          id: `skill_coverage_task_${task.TaskID}_${skill}`,
+          entityType: 'Task',
           severity: 'error',
           message: `Required skill '${skill}' for Task ${task.TaskID} not covered by any worker`,
+          field: 'RequiredSkills',
+          value: skill,
           affectedEntity: 'Task',
-          entityId: task.TaskID,
+          ruleId: undefined,
+          suggestions: []
         });
       }
     });
@@ -335,11 +376,15 @@ export function validateAll(
     );
     if (task.MaxConcurrent > qualified.length) {
       errors.push({
-        type: 'MaxConcurrencyFeasibility',
+        id: `max_concurrency_feasibility_${task.TaskID}`,
+        entityType: 'Task',
         severity: 'warning',
         message: `Task ${task.TaskID} MaxConcurrent (${task.MaxConcurrent}) exceeds qualified, available workers (${qualified.length})`,
+        field: 'MaxConcurrent',
+        value: task.MaxConcurrent,
         affectedEntity: 'Task',
-        entityId: task.TaskID,
+        ruleId: undefined,
+        suggestions: []
       });
     }
   });

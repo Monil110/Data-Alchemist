@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate data if requested
-    let validationResults = null;
+    const validationResults = null;
     if (validateOnUpload) {
       try {
         // For now, we'll skip validation since the validation engine might not be available
