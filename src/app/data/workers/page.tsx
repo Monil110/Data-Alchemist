@@ -34,7 +34,7 @@ export default function WorkersPage() {
   const mappedValidationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
     validationErrorsList.forEach(err => {
-      const rowIndex = workers.findIndex(w => w.WorkerID === err.entityId);
+      const rowIndex = workers.findIndex(w => w.WorkerID === err.id);
       if (rowIndex !== -1 && err.field) {
         errors[`${rowIndex}-${err.field}`] = err.message;
       }

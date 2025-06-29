@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@/types/client';
-import { Worker } from '@/types/worker';
-import { Task } from '@/types/task';
 
 export async function POST(req: NextRequest) {
   try {

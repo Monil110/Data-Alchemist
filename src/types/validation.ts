@@ -1,8 +1,11 @@
 export interface ValidationError {
-  type: string;
-  severity: 'info' | 'warning' | 'error';
+  id: string;
+  entityType: string;
+  severity: 'error' | 'warning';
   message: string;
-  affectedEntity: string;
-  entityId: string;
   field?: string;
+  value?: any;
+  affectedEntity: string;
+  ruleId?: string;
+  suggestions?: string[];
 }

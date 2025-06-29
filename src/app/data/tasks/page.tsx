@@ -34,7 +34,7 @@ export default function TasksPage() {
   const mappedValidationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
     validationErrorsList.forEach(err => {
-      const rowIndex = tasks.findIndex(t => t.TaskID === err.entityId);
+      const rowIndex = tasks.findIndex(t => t.TaskID === err.id);
       if (rowIndex !== -1 && err.field) {
         errors[`${rowIndex}-${err.field}`] = err.message;
       }

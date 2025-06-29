@@ -8,11 +8,17 @@ import { Search, Sparkles, Filter } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { searchWithNaturalLanguage, SearchResult } from '@/utils/nlpSearch';
 
-export function NaturalLanguageSearch() {
+interface NaturalLanguageSearchProps {
+  onSearch: (query: string) => void;
+  placeholder?: string;
+}
+
+export default function NaturalLanguageSearch({ onSearch, placeholder }: NaturalLanguageSearchProps) {
   const { state } = useData();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -31,6 +37,12 @@ export function NaturalLanguageSearch() {
     
     setSearchResults(results);
     setIsSearching(false);
+
+    // Add to search history
+    setSearchHistory(prev => {
+      const newHistory = [query, ...prev.filter(q => q !== query)].slice(0, 5);
+      return newHistory;
+    });
   };
 
   const getEntityData = (result: SearchResult) => {
@@ -46,6 +58,11 @@ export function NaturalLanguageSearch() {
     }
   };
 
+  const handleHistoryClick = (historyQuery: string) => {
+    setQuery(historyQuery);
+    onSearch(historyQuery);
+  };
+
   const exampleQueries = [
     "All tasks having a Duration of more than 1 phase and having phase 2 in their Preferred Phases list",
     "Workers with programming skills in San Francisco",
@@ -55,55 +72,55 @@ export function NaturalLanguageSearch() {
   ];
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-500" />
-          Natural Language Search
-        </CardTitle>
+        <CardTitle className="text-lg">Natural Language Search</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search your data using plain English..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-10"
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder={placeholder || "Search using natural language..."}
+            value={query}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+            className="flex-1"
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSearch()}
+          />
           <Button 
             onClick={handleSearch} 
-            disabled={!query.trim() || isSearching}
-            className="transition-all duration-200 hover:scale-105"
+            disabled={isSearching || !query.trim()}
+            className="px-6"
           >
-            {isSearching ? (
-              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-            ) : (
-              <Filter className="h-4 w-4 mr-2" />
-            )}
             {isSearching ? 'Searching...' : 'Search'}
           </Button>
         </div>
 
-        {/* Example queries */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Try these examples:</p>
-          <div className="flex flex-wrap gap-2">
-            {exampleQueries.map((example, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="text-xs h-auto py-1 px-2 whitespace-normal text-left"
-                onClick={() => setQuery(example)}
-              >
-                {example}
-              </Button>
-            ))}
+        {searchHistory.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Recent searches:</p>
+            <div className="flex flex-wrap gap-2">
+              {searchHistory.map((historyQuery, index) => (
+                <Badge
+                  key={index}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleHistoryClick(historyQuery)}
+                >
+                  {historyQuery}
+                </Badge>
+              ))}
+            </div>
           </div>
+        )}
+
+        <div className="text-sm text-gray-500">
+          <p>Examples:</p>
+          <ul className="list-disc list-inside space-y-1 mt-2">
+            <li>"Show clients with priority 5"</li>
+            <li>"Workers with skill 'JavaScript'"</li>
+            <li>"Tasks longer than 3 hours"</li>
+            <li>"High priority tasks for client C1"</li>
+          </ul>
         </div>
 
         {/* Search results */}

@@ -1,29 +1,58 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Client } from '@/types/client';
 import { useDataStore } from '@/store';
-import { useValidationStore } from '@/store/validation-slice';
-import { NaturalLanguageSearch } from '@/components/ai/natural-language-search';
-import { NaturalLanguageModifier } from '@/components/ai/natural-language-modifier';
-import { AICorrections } from '@/components/ai/ai-corrections';
-import { AIRecommendations } from '@/components/ai/ai-recommendations';
-import { Client } from '@/types';
+import NaturalLanguageSearch from '@/components/ai/natural-language-search';
+import { ValidationPanel } from '@/components/validation/validation-panel';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ClientsPage() {
+  const { clients, setClients, validationErrors } = useDataStore();
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [nlFilter, setNlFilter] = useState<string>("");
-  const [showAIFeatures, setShowAIFeatures] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<keyof Client>('ClientID');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [nlFilter, setNlFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
-  const clients = useDataStore(s => s.clients);
-  const setClients = useDataStore(s => s.setClients);
-  const runValidation = useValidationStore(s => s.runValidation);
-  const validationErrorsList = useValidationStore(s => s.errors);
+  // Filter clients based on search term, filters, and natural language query
+  useEffect(() => {
+    let filtered = [...clients];
 
-  // Debug logging
-  console.log('ClientsPage: Current clients data:', clients);
-  console.log('ClientsPage: Number of clients:', clients.length);
+    // Apply search term filter
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(client =>
+        client.ClientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.ClientID.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (client.GroupTag && client.GroupTag.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply priority filter
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter(client => client.PriorityLevel === parseInt(priorityFilter));
+    }
+
+    // Apply group filter
+    if (groupFilter !== 'all') {
+      filtered = filtered.filter(client => client.GroupTag === groupFilter);
+    }
+
+    // Apply natural language filter
+    if (nlFilter.trim()) {
+      filtered = filterClientsByQuery(filtered, nlFilter);
+    }
+
+    setFilteredClients(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [clients, searchTerm, priorityFilter, groupFilter, nlFilter]);
 
   // Advanced parser for natural language queries
   function filterClientsByQuery(clients: Client[], query: string): Client[] {
@@ -74,266 +103,215 @@ export default function ClientsPage() {
     return filtered;
   }
 
-  const filteredClients = filterClientsByQuery(clients, nlFilter).filter(client => {
-    const matchesSearch = client.ClientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.ClientID?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = filterPriority === 'all' || client.PriorityLevel?.toString() === filterPriority;
-    return matchesSearch && matchesPriority;
-  });
+  const handleSort = (field: keyof Client) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const sortedClients = [...filteredClients].sort((a, b) => {
-    let aValue: any = a[sortBy as keyof Client];
-    let bValue: any = b[sortBy as keyof Client];
+    const aValue = a[sortField];
+    const bValue = b[sortField];
     
-    if (sortBy === 'name') {
-      aValue = a.ClientName || '';
-      bValue = b.ClientName || '';
-    }
-    
-    if (sortOrder === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
-  const getPriorityColor = (priority: number) => {
-    if (priority >= 4) return 'bg-red-100 text-red-800';
-    if (priority >= 3) return 'bg-orange-100 text-orange-800';
-    if (priority >= 2) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-green-800';
-  };
+  const paginatedClients = sortedClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  const getPriorityLabel = (priority: number) => {
-    if (priority >= 4) return 'Critical';
-    if (priority >= 3) return 'High';
-    if (priority >= 2) return 'Medium';
-    return 'Low';
-  };
-
-  const handleCellEdit = (rowIndex: number, columnId: string, value: any) => {
-    const updated = [...clients];
-    const client = { ...updated[rowIndex] };
-    (client as any)[columnId] = value;
-    updated[rowIndex] = client as Client;
-    setClients(updated);
-    runValidation();
-  };
-
-  // Map validation errors to cell keys
-  const validationErrors: Record<string, string> = {};
-  validationErrorsList.forEach(err => {
-    const rowIndex = clients.findIndex(c => c.ClientID === err.entityId);
-    if (rowIndex !== -1 && err.field) {
-      validationErrors[`${rowIndex}-${err.field}`] = err.message;
-    }
-  });
-
-  const handleApplyCorrection = (errorId: string, correction: any) => {
-    // Apply AI correction logic here
-    console.log('Applying correction:', errorId, correction);
-    runValidation();
-  };
-
-  const handleApplyBatchCorrections = (corrections: Array<{ errorId: string; correction: any }>) => {
-    // Apply batch corrections logic here
-    console.log('Applying batch corrections:', corrections);
-    runValidation();
-  };
-
-  const handleApplyModification = (modifiedData: any[]) => {
-    setClients(modifiedData);
-    runValidation();
-  };
+  const totalPages = Math.ceil(sortedClients.length / itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Clients Management</h1>
-          <p className="mt-2 text-gray-600">
-            Manage client information, priorities, and task requests.
-          </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900">Clients Management</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.print()}>
+            Export
+          </Button>
+          <Button onClick={() => {}}>
+            Add Client
+          </Button>
         </div>
+      </div>
 
-        {/* AI Features Toggle */}
-        <div className="mb-6">
-          <button
-            onClick={() => setShowAIFeatures(!showAIFeatures)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {showAIFeatures ? 'Hide AI Features' : 'Show AI Features'}
-          </button>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Clients Data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <Input
+                    placeholder="Search clients..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      <SelectItem value="1">Priority 1</SelectItem>
+                      <SelectItem value="2">Priority 2</SelectItem>
+                      <SelectItem value="3">Priority 3</SelectItem>
+                      <SelectItem value="4">Priority 4</SelectItem>
+                      <SelectItem value="5">Priority 5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={groupFilter} onValueChange={setGroupFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Groups</SelectItem>
+                      {Array.from(new Set(clients.map(c => c.GroupTag).filter(Boolean))).map(group => (
+                        <SelectItem key={group} value={group}>
+                          {group}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* AI Features Section */}
-        {showAIFeatures && (
-          <div className="mb-8 space-y-6">
-            {/* Natural Language Modifier */}
-            <NaturalLanguageModifier
-              entityType="clients"
-              data={clients}
-              onApplyModification={handleApplyModification}
-            />
+                <NaturalLanguageSearch onSearch={setNlFilter} placeholder="e.g. Priority 5, with task T1" />
 
-            {/* AI Corrections */}
-            <AICorrections
-              errors={validationErrorsList.filter(e => e.affectedEntity === 'client')}
-              onApplyCorrection={handleApplyCorrection}
-              onApplyBatchCorrections={handleApplyBatchCorrections}
-              onDismiss={() => {}}
-            />
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th 
+                          className="border border-gray-300 px-4 py-2 text-left cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('ClientID')}
+                        >
+                          Client ID
+                          {sortField === 'ClientID' && (
+                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </th>
+                        <th 
+                          className="border border-gray-300 px-4 py-2 text-left cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('ClientName')}
+                        >
+                          Name
+                          {sortField === 'ClientName' && (
+                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </th>
+                        <th 
+                          className="border border-gray-300 px-4 py-2 text-left cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('PriorityLevel')}
+                        >
+                          Priority
+                          {sortField === 'PriorityLevel' && (
+                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </th>
+                        <th 
+                          className="border border-gray-300 px-4 py-2 text-left cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSort('GroupTag')}
+                        >
+                          Group
+                          {sortField === 'GroupTag' && (
+                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedClients.map((client) => (
+                        <tr key={client.ClientID} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 px-4 py-2">{client.ClientID}</td>
+                          <td className="border border-gray-300 px-4 py-2">{client.ClientName}</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <Badge variant={client.PriorityLevel >= 4 ? 'destructive' : 'default'}>
+                              {client.PriorityLevel}
+                            </Badge>
+                          </td>
+                          <td className="border border-gray-300 px-4 py-2">{client.GroupTag || '-'}</td>
+                          <td className="border border-gray-300 px-4 py-2">
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline">Edit</Button>
+                              <Button size="sm" variant="destructive">Delete</Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* AI Recommendations */}
-            <AIRecommendations
-              clients={clients}
-              workers={[]}
-              tasks={[]}
-              onApplyRecommendation={(recommendation) => {
-                console.log('Applying recommendation:', recommendation);
-              }}
-            />
-          </div>
-        )}
-
-        {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search clients..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={filterPriority}
-                onChange={(e) => setFilterPriority(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Priorities</option>
-                <option value="1">Low (1)</option>
-                <option value="2">Medium (2)</option>
-                <option value="3">High (3)</option>
-                <option value="4">Critical (4)</option>
-                <option value="5">Emergency (5)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="name">Name</option>
-                <option value="ClientID">ID</option>
-                <option value="PriorityLevel">Priority</option>
-                <option value="GroupTag">Group</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Natural Language Search */}
-        <div className="mb-6">
-          <NaturalLanguageSearch onSearch={setNlFilter} placeholder="e.g. Priority 5, with task T1" />
-        </div>
-
-        {/* Data Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Requested Tasks
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Group
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sortedClients.map((client, index) => (
-                  <tr key={client.ClientID} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {client.ClientID}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {client.ClientName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(client.PriorityLevel)}`}>
-                        {getPriorityLabel(client.PriorityLevel)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {Array.isArray(client.RequestedTaskIDs) ? client.RequestedTaskIDs.join(', ') : client.RequestedTaskIDs}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {client.GroupTag}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                      <button className="text-red-600 hover:text-red-900">Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Empty State */}
-          {sortedClients.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">👥</span>
+                <div className="flex justify-between items-center">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedClients.length)} of {sortedClients.length} clients
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span className="px-3 py-2 text-sm">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No clients found</h3>
-              <p className="text-gray-600 mb-6">
-                {searchTerm || filterPriority !== 'all' 
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'Upload data files to start managing clients.'
-                }
-              </p>
-              <button className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Client
-              </button>
-            </div>
-          )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <ValidationPanel />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Total Clients:</span>
+                  <span className="font-semibold">{clients.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>High Priority:</span>
+                  <span className="font-semibold text-red-600">
+                    {clients.filter(c => c.PriorityLevel >= 4).length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Groups:</span>
+                  <span className="font-semibold">
+                    {Array.from(new Set(clients.map(c => c.GroupTag).filter(Boolean))).length}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

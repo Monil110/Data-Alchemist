@@ -1,37 +1,39 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost';
-  size?: 'default' | 'sm' | 'lg';
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => {
-    return (
-      <button
-        className={cn(
-          'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background',
-          {
-            'bg-primary text-primary-foreground hover:bg-primary/90': variant === 'default',
-            'bg-destructive text-destructive-foreground hover:bg-destructive/90': variant === 'destructive',
-            'border border-input hover:bg-accent hover:text-accent-foreground': variant === 'outline',
-            'bg-secondary text-secondary-foreground hover:bg-secondary/80': variant === 'secondary',
-            'hover:bg-accent hover:text-accent-foreground': variant === 'ghost',
-          },
-          {
-            'h-10 py-2 px-4': size === 'default',
-            'h-9 px-3 rounded-md': size === 'sm',
-            'h-11 px-8 rounded-md': size === 'lg',
-          },
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
-Button.displayName = 'Button';
+export function Button({ 
+  children, 
+  variant = 'default', 
+  size = 'md',
+  className = '', 
+  ...props 
+}: ButtonProps) {
+  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+  
+  const variantClasses = {
+    default: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus:ring-gray-500',
+    destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    outline: 'border border-gray-300 bg-transparent hover:bg-gray-50 focus:ring-gray-500',
+    ghost: 'hover:bg-gray-100 focus:ring-gray-500'
+  };
 
-export { Button };
+  const sizeClasses = {
+    sm: 'h-8 px-3 text-sm',
+    md: 'h-10 px-4 py-2',
+    lg: 'h-12 px-6 text-lg'
+  };
+
+  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+  
+  return (
+    <button className={classes} {...props}>
+      {children}
+    </button>
+  );
+}

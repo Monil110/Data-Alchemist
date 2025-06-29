@@ -232,7 +232,9 @@ export function BatchErrorFix({ errors, onApplyBatchFix, onDismiss }: BatchError
 
     // Process errors with a small delay between each to avoid rate limiting
     for (let i = 0; i < errors.length; i++) {
-      await processError(errors[i]);
+      const error = errors[i];
+      if (!error) continue;
+      await processError(error);
       if (i < errors.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
