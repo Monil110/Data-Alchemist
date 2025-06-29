@@ -1,5 +1,7 @@
 // src/types/index.ts
 
+import type { BusinessRule } from './rules';
+
 export interface Client {
     ClientID: string;
     ClientName: string;
@@ -54,25 +56,6 @@ export interface Client {
     PHASE_SATURATION = 'phase_saturation',
     SKILL_COVERAGE = 'skill_coverage',
     MAX_CONCURRENCY = 'max_concurrency'
-  }
-  
-  export interface BusinessRule {
-    id: string;
-    type: RuleType;
-    name: string;
-    description: string;
-    parameters: Record<string, any>;
-    isActive: boolean;
-    createdAt: Date;
-  }
-  
-  export enum RuleType {
-    CO_RUN = 'co_run',
-    SLOT_RESTRICTION = 'slot_restriction',
-    LOAD_LIMIT = 'load_limit',
-    PHASE_WINDOW = 'phase_window',
-    PATTERN_MATCH = 'pattern_match',
-    PRECEDENCE_OVERRIDE = 'precedence_override'
   }
   
   export interface DataStore {

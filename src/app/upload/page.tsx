@@ -55,8 +55,6 @@ export default function UploadPage() {
       const file = files[i];
       if (!file) continue; // Skip if file is undefined
       
-      const fileIndex = newFiles.findIndex(f => f.name === file.name);
-      
       try {
         // Detect file type
         const fileType = detectFileType(file.name);
@@ -70,7 +68,7 @@ export default function UploadPage() {
         
         // Update file status
         setUploadedFiles(prev => 
-          prev.map((f, idx) => {
+          prev.map((f, _) => {
             if (f.name === file.name) {
               return { 
                 ...f, 
@@ -102,7 +100,7 @@ export default function UploadPage() {
       } catch (error) {
         console.error('Error processing file:', file.name, error);
         setUploadedFiles(prev => 
-          prev.map((f, idx) => {
+          prev.map((f, _) => {
             if (f.name === file.name) {
               return { 
                 ...f, 

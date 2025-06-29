@@ -7,14 +7,14 @@ interface AICorrectionsProps {
   errors: ValidationError[];
   onApplyCorrection: (errorId: string, correction: any) => void;
   onApplyBatchCorrections: (corrections: Array<{ errorId: string; correction: any }>) => void;
-  onDismiss: () => void;
+  // onDismiss: () => void; // removed unused prop
 }
 
 export const AICorrections: React.FC<AICorrectionsProps> = ({
   errors,
   onApplyCorrection,
   onApplyBatchCorrections,
-  onDismiss,
+  // onDismiss, // removed unused prop
 }) => {
   const [loadingErrors, setLoadingErrors] = useState<Set<string>>(new Set());
   const [corrections, setCorrections] = useState<Record<string, any>>({});

@@ -1,6 +1,7 @@
 // src/store/index.ts
 import { create } from 'zustand';
-import { Client, Worker, Task, ValidationError, BusinessRule, DataStore } from '@/types';
+import { Client, Worker, Task, ValidationError, DataStore } from '@/types';
+import { BusinessRule } from '@/types/rules';
 
 interface DataStoreActions {
   setClients: (clients: Client[]) => void;
@@ -8,7 +9,7 @@ interface DataStoreActions {
   setTasks: (tasks: Task[]) => void;
   setValidationErrors: (errors: ValidationError[]) => void;
   addBusinessRule: (rule: BusinessRule) => void;
-  updateBusinessRule: (id: string, updates: Partial<BusinessRule>) => void;
+  updateBusinessRule: (id: string, updates: Partial<Omit<BusinessRule, 'type' | 'id'>>) => void;
   deleteBusinessRule: (id: string) => void;
   setLoading: (loading: boolean) => void;
   reset: () => void;
@@ -24,7 +25,7 @@ const initialState: DataStore = {
   lastUpdated: null,
 };
 
-export const useDataStore = create<DataStore & DataStoreActions>((set, get) => ({
+export const useDataStore = create<DataStore & DataStoreActions>((set) => ({
   ...initialState,
 
   setClients: (clients) => {
@@ -53,7 +54,7 @@ export const useDataStore = create<DataStore & DataStoreActions>((set, get) => (
   updateBusinessRule: (id, updates) => 
     set((state) => ({
       businessRules: state.businessRules.map(rule => 
-        rule.id === id ? { ...rule, ...updates } : rule
+        rule.id === id ? { ...rule, ...updates, updatedAt: new Date() } : rule
       )
     })),
 

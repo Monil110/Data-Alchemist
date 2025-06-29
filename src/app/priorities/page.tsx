@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { PrioritizationSettings } from '@/types/rules';
 import PrioritizationInterface from '@/components/priorities/prioritization-interface';
-import { useDataStore } from '@/store';
 
 export default function PrioritiesPage() {
   // Default prioritization settings - in a real app, these would come from a store

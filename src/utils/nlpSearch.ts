@@ -37,7 +37,7 @@ function localSearch(
     // Search by priority
     if (queryLower.includes('priority') && client.PriorityLevel) {
       const priorityMatch = queryLower.match(/priority\s*(\d+)/i);
-      if (priorityMatch && client.PriorityLevel === parseInt(priorityMatch[1])) {
+      if (priorityMatch && priorityMatch[1] !== undefined && client.PriorityLevel === parseInt(priorityMatch[1])) {
         score += 70;
         match = `Priority Level: ${client.PriorityLevel}`;
         field = 'PriorityLevel';
@@ -47,7 +47,7 @@ function localSearch(
     // Search by requested tasks
     if (queryLower.includes('task') && client.RequestedTaskIDs && client.RequestedTaskIDs.length > 0) {
       const taskMatch = queryLower.match(/task\s*([a-zA-Z0-9]+)/i);
-      if (taskMatch && client.RequestedTaskIDs.includes(taskMatch[1])) {
+      if (taskMatch && taskMatch[1] !== undefined && client.RequestedTaskIDs.includes(taskMatch[1])) {
         score += 60;
         match = `Requested Task: ${taskMatch[1]}`;
         field = 'RequestedTaskIDs';
@@ -82,7 +82,7 @@ function localSearch(
     // Search by skills
     if (queryLower.includes('skill') && worker.Skills && worker.Skills.length > 0) {
       const skillMatch = queryLower.match(/skill\s*([a-zA-Z0-9]+)/i);
-      if (skillMatch && worker.Skills.includes(skillMatch[1])) {
+      if (skillMatch && skillMatch[1] !== undefined && worker.Skills.includes(skillMatch[1])) {
         score += 70;
         match = `Skill: ${skillMatch[1]}`;
         field = 'Skills';
@@ -101,7 +101,7 @@ function localSearch(
     // Search by max load
     if (queryLower.includes('maxload') && worker.MaxLoadPerPhase) {
       const loadMatch = queryLower.match(/maxload\s*(\d+)/i);
-      if (loadMatch && worker.MaxLoadPerPhase === parseInt(loadMatch[1])) {
+      if (loadMatch && loadMatch[1] !== undefined && worker.MaxLoadPerPhase === parseInt(loadMatch[1])) {
         score += 50;
         match = `Max Load: ${worker.MaxLoadPerPhase}`;
         field = 'MaxLoadPerPhase';
@@ -136,7 +136,7 @@ function localSearch(
     // Search by duration
     if (queryLower.includes('duration') && task.Duration) {
       const durationMatch = queryLower.match(/duration\s*(\d+)/i);
-      if (durationMatch && task.Duration === parseInt(durationMatch[1])) {
+      if (durationMatch && durationMatch[1] !== undefined && task.Duration === parseInt(durationMatch[1])) {
         score += 70;
         match = `Duration: ${task.Duration}`;
         field = 'Duration';
@@ -146,7 +146,7 @@ function localSearch(
     // Search by required skills
     if (queryLower.includes('skill') && task.RequiredSkills && task.RequiredSkills.length > 0) {
       const skillMatch = queryLower.match(/skill\s*([a-zA-Z0-9]+)/i);
-      if (skillMatch && task.RequiredSkills.includes(skillMatch[1])) {
+      if (skillMatch && skillMatch[1] !== undefined && task.RequiredSkills.includes(skillMatch[1])) {
         score += 60;
         match = `Required Skill: ${skillMatch[1]}`;
         field = 'RequiredSkills';
@@ -156,7 +156,7 @@ function localSearch(
     // Search by preferred phases
     if (queryLower.includes('phase') && task.PreferredPhases && task.PreferredPhases.length > 0) {
       const phaseMatch = queryLower.match(/phase\s*(\d+)/i);
-      if (phaseMatch && task.PreferredPhases.includes(parseInt(phaseMatch[1]))) {
+      if (phaseMatch && phaseMatch[1] !== undefined && task.PreferredPhases.includes(parseInt(phaseMatch[1]))) {
         score += 50;
         match = `Preferred Phase: ${phaseMatch[1]}`;
         field = 'PreferredPhases';
@@ -214,15 +214,15 @@ async function aiSearch(
     
     switch (entityType) {
       case 'clients':
-        allData = window.__DATA__?.clients || [];
+        allData = (typeof window !== 'undefined' && window.__DATA__?.clients) ? window.__DATA__.clients : [];
         entityKey = 'ClientID';
         break;
       case 'workers':
-        allData = window.__DATA__?.workers || [];
+        allData = (typeof window !== 'undefined' && window.__DATA__?.workers) ? window.__DATA__.workers : [];
         entityKey = 'WorkerID';
         break;
       case 'tasks':
-        allData = window.__DATA__?.tasks || [];
+        allData = (typeof window !== 'undefined' && window.__DATA__?.tasks) ? window.__DATA__.tasks : [];
         entityKey = 'TaskID';
         break;
       default:
@@ -231,14 +231,17 @@ async function aiSearch(
 
     const filteredData = filterFunction(allData);
     
-    return filteredData.map((item: any) => ({
-      id: item[entityKey],
-      entity: entityType,
-      match: `AI matched: ${item.Name || item[entityKey]}`,
-      score: 90, // High score for AI matches
-      field: 'AI',
-      value: item
-    }));
+    return (filteredData ?? []).filter(Boolean).map((item: any) => {
+      const safeItem = item as any;
+      return {
+        id: safeItem[entityKey as string] ?? '',
+        entity: entityType,
+        match: `AI matched: ${(safeItem.Name || safeItem[entityKey as string] || '')}`,
+        score: 90, // High score for AI matches
+        field: 'AI',
+        value: safeItem
+      };
+    });
 
   } catch (error) {
     console.error('AI search error:', error);
@@ -257,7 +260,7 @@ export async function searchWithNaturalLanguage(
   const localResults = localSearch(query, clients, workers, tasks);
   
   // If we have good local results, return them
-  if (localResults.length > 0 && localResults[0].score > 60) {
+  if (localResults.length > 0 && localResults[0] && localResults[0].score > 60) {
     return localResults;
   }
 

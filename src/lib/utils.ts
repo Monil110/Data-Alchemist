@@ -20,9 +20,13 @@ export function parsePhaseRange(value: string | null | undefined): number[] {
   
   // Handle range format like "1-3"
   if (value.includes('-')) {
-    const [start, end] = value.split('-').map(num => parseInt(num.trim()));
-    if (!isNaN(start) && !isNaN(end)) {
-      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    const parts = value.split('-').map(num => num.trim());
+    if (parts.length === 2 && parts[0] && parts[1]) {
+      const start = parseInt(parts[0]);
+      const end = parseInt(parts[1]);
+      if (!isNaN(start) && !isNaN(end)) {
+        return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+      }
     }
   }
   

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { BusinessRule, PrioritizationSettings } from '@/types/rules';
+import { PrioritizationSettings } from '@/types/rules';
 import ExportSystem from '@/components/export/export-system';
 import { useDataStore } from '@/store';
 

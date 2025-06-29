@@ -79,65 +79,6 @@ export default function TasksPage() {
     setSelectedRows([]);
   };
 
-  // Advanced parser for natural language queries
-  function filterTasksByQuery(tasks: Task[], query: string): Task[] {
-    if (!query.trim()) return tasks;
-    let filtered = tasks;
-    
-    // Numeric comparison: "duration > 120" or "Duration >= 60"
-    const durationMatch = query.match(/duration\s*(=|>|<|>=|<=|is|:)?\s*(\d+)/i);
-    if (durationMatch) {
-      const op = durationMatch[1] || '=';
-      const durationStr = durationMatch[2];
-      if (durationStr) {
-        const duration = parseInt(durationStr, 10);
-        filtered = filtered.filter(t => {
-          if (op === '>' || op === 'gt') return t.Duration > duration;
-          if (op === '<' || op === 'lt') return t.Duration < duration;
-          if (op === '>=' || op === 'ge') return t.Duration >= duration;
-          if (op === '<=' || op === 'le') return t.Duration <= duration;
-          return t.Duration === duration;
-        });
-      }
-    }
-    
-    // Array inclusion: "with skill S1" or "skill S1"
-    const skillMatch = query.match(/skill\s*(id)?\s*(=|is|:)?\s*([\w-]+)/i);
-    if (skillMatch) {
-      const skillId = skillMatch[3];
-      if (skillId) {
-        filtered = filtered.filter(t => t.RequiredSkills && t.RequiredSkills.includes(skillId));
-      }
-    }
-    
-    // Phase filter: "phase 1" or "phase 1"
-    const phaseMatch = query.match(/phase\s*(=|is|:)?\s*(\d+)/i);
-    if (phaseMatch) {
-      const phaseStr = phaseMatch[2];
-      if (phaseStr) {
-        const phase = parseInt(phaseStr, 10);
-        filtered = filtered.filter(t => t.PreferredPhases && t.PreferredPhases.includes(phase));
-      }
-    }
-    
-    // Logical AND: "duration > 120 and with skill S1"
-    if (/ and /i.test(query)) {
-      const parts = query.split(/ and /i);
-      return parts.reduce((acc, part) => filterTasksByQuery(acc, part), tasks);
-    }
-    
-    // Logical OR: "duration 180 or duration 240"
-    if (/ or /i.test(query)) {
-      const parts = query.split(/ or /i);
-      const sets: Task[][] = parts.map(part => filterTasksByQuery(tasks, part));
-      // Union of all sets
-      const union = sets.flat().filter((v, i, arr) => arr.findIndex(x => x.TaskID === v.TaskID) === i);
-      return union;
-    }
-    
-    return filtered;
-  }
-
   return (
     <div style={{ padding: 24 }}>
       <h2>Tasks</h2>

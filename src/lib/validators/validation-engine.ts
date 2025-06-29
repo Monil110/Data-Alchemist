@@ -281,7 +281,6 @@ export function validateAll(
           field: 'group',
           value: group.join(', '),
           affectedEntity: 'Task',
-          ruleId: rule.id,
           suggestions: []
         });
         break;
@@ -306,7 +305,6 @@ export function validateAll(
           field: 'PreferredPhases',
           value: preferred.join(', '),
           affectedEntity: 'Task',
-          ruleId: rule.id,
           suggestions: []
         });
       }
@@ -332,7 +330,10 @@ export function validateAll(
   });
   Object.keys(phaseDurations).forEach(phaseStr => {
     const phase = Number(phaseStr);
-    if (phaseDurations[phase] > (phaseSlots[phase] || 0)) {
+    if (
+      typeof phaseDurations[phase] !== 'undefined' &&
+      phaseDurations[phase] > (phaseSlots[phase] || 0)
+    ) {
       errors.push({
         id: `phase_slot_saturation_${phase}`,
         entityType: 'Phase',
@@ -341,7 +342,6 @@ export function validateAll(
         field: 'AvailableSlots',
         value: undefined,
         affectedEntity: 'Phase',
-        ruleId: undefined,
         suggestions: []
       });
     }
@@ -361,7 +361,6 @@ export function validateAll(
           field: 'RequiredSkills',
           value: skill,
           affectedEntity: 'Task',
-          ruleId: undefined,
           suggestions: []
         });
       }
@@ -383,7 +382,6 @@ export function validateAll(
         field: 'MaxConcurrent',
         value: task.MaxConcurrent,
         affectedEntity: 'Task',
-        ruleId: undefined,
         suggestions: []
       });
     }

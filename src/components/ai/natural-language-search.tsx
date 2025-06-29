@@ -1,10 +1,10 @@
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Sparkles, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { searchWithNaturalLanguage, SearchResult } from '@/utils/nlpSearch';
 
@@ -62,14 +62,6 @@ export default function NaturalLanguageSearch({ onSearch, placeholder }: Natural
     setQuery(historyQuery);
     onSearch(historyQuery);
   };
-
-  const exampleQueries = [
-    "All tasks having a Duration of more than 1 phase and having phase 2 in their Preferred Phases list",
-    "Workers with programming skills in San Francisco",
-    "High priority tasks requiring JavaScript skills",
-    "Clients requesting web development tasks",
-    "Tasks with duration less than 3 hours"
-  ];
 
   return (
     <Card className="w-full">
@@ -175,7 +167,7 @@ export default function NaturalLanguageSearch({ onSearch, placeholder }: Natural
         {searchResults.length === 0 && query && !isSearching && (
           <div className="text-center py-8 text-muted-foreground">
             <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No results found for "{query}"</p>
+            <p>No results found for &quot;{query}&quot;</p>
             <p className="text-xs mt-1">Try a different search term or check the examples above</p>
           </div>
         )}

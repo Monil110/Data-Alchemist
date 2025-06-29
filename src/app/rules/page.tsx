@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 import { BusinessRule, RuleType, RuleTemplate, PrioritizationSettings } from '@/types/rules';
 import RuleForm from '@/components/rules/rule-form';
 

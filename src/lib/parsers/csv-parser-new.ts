@@ -1,101 +1,5 @@
 import * as XLSX from 'xlsx';
 import { Client, Worker, Task, ParsedData } from '@/types';
-import fuzzysort from 'fuzzysort';
-
-interface HeaderMapping {
-  [key: string]: string;
-}
-
-// Smart header mapping for common variations
-const CLIENT_HEADER_MAPPING: HeaderMapping = {
-  'client_id': 'ClientID',
-  'clientid': 'ClientID',
-  'id': 'ClientID',
-  'client_name': 'ClientName',
-  'clientname': 'ClientName',
-  'name': 'ClientName',
-  'priority_level': 'PriorityLevel',
-  'prioritylevel': 'PriorityLevel',
-  'priority': 'PriorityLevel',
-  'requested_task_ids': 'RequestedTaskIDs',
-  'requestedtaskids': 'RequestedTaskIDs',
-  'tasks': 'RequestedTaskIDs',
-  'group_tag': 'GroupTag',
-  'grouptag': 'GroupTag',
-  'group': 'GroupTag',
-  'attributes_json': 'AttributesJSON',
-  'attributesjson': 'AttributesJSON',
-  'attributes': 'AttributesJSON',
-  'metadata': 'AttributesJSON'
-};
-
-const WORKER_HEADER_MAPPING: HeaderMapping = {
-  'worker_id': 'WorkerID',
-  'workerid': 'WorkerID',
-  'id': 'WorkerID',
-  'worker_name': 'WorkerName',
-  'workername': 'WorkerName',
-  'name': 'WorkerName',
-  'skills': 'Skills',
-  'available_slots': 'AvailableSlots',
-  'availableslots': 'AvailableSlots',
-  'slots': 'AvailableSlots',
-  'max_load_per_phase': 'MaxLoadPerPhase',
-  'maxloadperphase': 'MaxLoadPerPhase',
-  'max_load': 'MaxLoadPerPhase',
-  'worker_group': 'WorkerGroup',
-  'workergroup': 'WorkerGroup',
-  'group': 'WorkerGroup',
-  'qualification_level': 'QualificationLevel',
-  'qualificationlevel': 'QualificationLevel',
-  'qualification': 'QualificationLevel'
-};
-
-const TASK_HEADER_MAPPING: HeaderMapping = {
-  'task_id': 'TaskID',
-  'taskid': 'TaskID',
-  'id': 'TaskID',
-  'task_name': 'TaskName',
-  'taskname': 'TaskName',
-  'name': 'TaskName',
-  'category': 'Category',
-  'duration': 'Duration',
-  'required_skills': 'RequiredSkills',
-  'requiredskills': 'RequiredSkills',
-  'skills': 'RequiredSkills',
-  'preferred_phases': 'PreferredPhases',
-  'preferredphases': 'PreferredPhases',
-  'phases': 'PreferredPhases',
-  'max_concurrent': 'MaxConcurrent',
-  'maxconcurrent': 'MaxConcurrent',
-  'concurrent': 'MaxConcurrent'
-};
-
-const CLIENT_FIELDS = [
-  'ClientID', 'ClientName', 'PriorityLevel', 'RequestedTaskIDs', 'GroupTag', 'AttributesJSON'
-];
-const WORKER_FIELDS = [
-  'WorkerID', 'WorkerName', 'Skills', 'AvailableSlots', 'MaxLoadPerPhase', 'WorkerGroup', 'QualificationLevel'
-];
-const TASK_FIELDS = [
-  'TaskID', 'TaskName', 'Category', 'Duration', 'RequiredSkills', 'PreferredPhases', 'MaxConcurrent'
-];
-
-function normalizeHeaders(headers: string[], mapping: HeaderMapping): string[] {
-  return headers.map(header => {
-    const normalized = header.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return mapping[normalized] || header;
-  });
-}
-
-function fuzzyMapHeader(header: string, type: 'clients' | 'workers' | 'tasks'): string {
-  const fields = type === 'clients' ? CLIENT_FIELDS : type === 'workers' ? WORKER_FIELDS : TASK_FIELDS;
-  const result = fuzzysort.go(header, fields);
-  if (result.length > 0 && result[0].score > -1000) {
-    return result[0].target;
-  }
-  return header;
-}
 
 function parseArrayField(field: any): string[] {
   if (!field) return [];
@@ -212,7 +116,7 @@ function parseTaskRow(row: any, index: number): Task | null {
   }
 }
 
-export async function parseFile(file: File, type: 'clients' | 'workers' | 'tasks'): Promise<any[]> {
+export async function parseFile(file: File): Promise<any[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -231,7 +135,9 @@ export async function parseFile(file: File, type: 'clients' | 'workers' | 'tasks
         }
         
         const sheetName = workbook.SheetNames[0];
+        if (!sheetName) throw new Error('No sheet found in workbook');
         const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) throw new Error('No worksheet found for the first sheet');
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
         
         console.log('Parsed data:', jsonData.slice(0, 2)); // Debug log
@@ -313,7 +219,7 @@ export function parseCSV(
   return new Promise(async (resolve) => {
     try {
       // Use the new parseFile function
-      const rawData = await parseFile(file, type);
+      const rawData = await parseFile(file);
       console.log('Raw parsed data:', rawData.slice(0, 2));
       
       // Normalize the data using the new normalizeData function
@@ -350,11 +256,14 @@ export function parseCSV(
         errors.push(`Failed to parse ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
-      const finalResult = {
-        [type]: parsedData,
-        errors
-      } as ParsedData;
-      
+      let finalResult: ParsedData;
+      if (type === 'clients') {
+        finalResult = { clients: parsedData as Client[], errors };
+      } else if (type === 'workers') {
+        finalResult = { workers: parsedData as Worker[], errors };
+      } else {
+        finalResult = { tasks: parsedData as Task[], errors };
+      }
       console.log('Final parse result:', finalResult);
       resolve(finalResult);
     } catch (error) {

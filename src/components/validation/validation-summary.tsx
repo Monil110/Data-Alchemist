@@ -10,8 +10,11 @@ export const ValidationStatusDashboard: React.FC = () => {
   const byEntity: Record<string, { errors: number; warnings: number }> = {};
   errors.forEach(e => {
     if (!byEntity[e.affectedEntity]) byEntity[e.affectedEntity] = { errors: 0, warnings: 0 };
-    if (e.severity === 'error') byEntity[e.affectedEntity].errors++;
-    if (e.severity === 'warning') byEntity[e.affectedEntity].warnings++;
+    const entity = byEntity[e.affectedEntity];
+    if (entity) {
+      if (e.severity === 'error') entity.errors++;
+      if (e.severity === 'warning') entity.warnings++;
+    }
   });
 
   let health: 'healthy' | 'warning' | 'error' = 'healthy';
